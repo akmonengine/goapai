@@ -139,11 +139,11 @@ type ConditionFn struct {
 	valid    bool
 }
 
-func (conditionFn ConditionFn) GetKey() StateKey {
+func (conditionFn *ConditionFn) GetKey() StateKey {
 	return conditionFn.Key
 }
 
-func (conditionFn ConditionFn) Check(states states) bool {
+func (conditionFn *ConditionFn) Check(states states) bool {
 	if !conditionFn.resolved {
 		conditionFn.valid = conditionFn.CheckFn(states.Agent.sensors)
 		conditionFn.resolved = true
@@ -158,11 +158,11 @@ type Condition[T Numeric] struct {
 	Operator operator
 }
 
-func (condition Condition[T]) GetKey() StateKey {
+func (condition *Condition[T]) GetKey() StateKey {
 	return condition.Key
 }
 
-func (condition Condition[T]) Check(states states) bool {
+func (condition *Condition[T]) Check(states states) bool {
 	if s, ok := states.data[condition.Key]; ok {
 		if state, ok := s.(State[T]); ok {
 			switch condition.Operator {
@@ -203,11 +203,11 @@ type ConditionBool struct {
 	Operator operator
 }
 
-func (conditionBool ConditionBool) GetKey() StateKey {
+func (conditionBool *ConditionBool) GetKey() StateKey {
 	return conditionBool.Key
 }
 
-func (conditionBool ConditionBool) Check(states states) bool {
+func (conditionBool *ConditionBool) Check(states states) bool {
 	if s, ok := states.data[conditionBool.Key]; ok {
 		if state, ok := s.(StateBool); ok {
 			switch conditionBool.Operator {
@@ -234,11 +234,11 @@ type ConditionString struct {
 	Operator operator
 }
 
-func (conditionString ConditionString) GetKey() StateKey {
+func (conditionString *ConditionString) GetKey() StateKey {
 	return conditionString.Key
 }
 
-func (conditionString ConditionString) Check(states states) bool {
+func (conditionString *ConditionString) Check(states states) bool {
 	if s, ok := states.data[conditionString.Key]; ok {
 		if state, ok := s.(StateString); ok {
 			switch conditionString.Operator {
