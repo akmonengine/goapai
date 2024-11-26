@@ -91,8 +91,8 @@ actions.AddAction("fetch apple", 2, true, goapai.Conditions{}, goapai.Effects{
 })
 
 actions.AddAction("eat", 1, true, goapai.Conditions{
-        goapai.ConditionBool{Key: ATTRIBUTE_HAS_APPLE, Value: true},
-        goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
+        &goapai.ConditionBool{Key: ATTRIBUTE_HAS_APPLE, Value: true},
+        &goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
 }, goapai.Effects{
     goapai.Effect[bool]{
         Key:      ATTRIBUTE_HUNGRY,
@@ -113,7 +113,7 @@ actions.AddAction("eat", 1, true, goapai.Conditions{
 goals := goapai.Goals{
     "eat": {
         Conditions: []goapai.ConditionInterface{
-            goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
+            &goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
         },
         PriorityFn: func(sensors goapai.Sensors) float64 {
             if sensors.GetSensor("entity").(*Entity).attributes.isHungry {
@@ -125,7 +125,7 @@ goals := goapai.Goals{
     },
     "get wood": {
         Conditions: []goapai.ConditionInterface{
-            goapai.Condition[int]{Key: ATTRIBUTE_HAS_WOOD, Value: true},
+            &goapai.Condition[int]{Key: ATTRIBUTE_HAS_WOOD, Value: true},
         },
         PriorityFn: func(sensors goapai.Sensors) float64 {
             if !sensors.GetSensor("entity").(*Entity).attributes.hasWood {

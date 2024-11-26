@@ -566,7 +566,7 @@ func BenchmarkGoapAI(b *testing.B) {
 
 	goals := goapai.Goals{
 		"eat": {
-			Conditions: []goapai.ConditionInterface{
+			Conditions: goapai.Conditions{
 				&goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
 				&goapai.Condition[int]{Key: ATTRIBUTE_5, Value: 2, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
 			},
@@ -579,7 +579,7 @@ func BenchmarkGoapAI(b *testing.B) {
 			},
 		},
 		"play": {
-			Conditions: []goapai.ConditionInterface{
+			Conditions: goapai.Conditions{
 				&goapai.Condition[int]{Key: ATTRIBUTE_6, Value: 10, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
 			},
 			PriorityFn: func(sensors goapai.Sensors) float64 {
