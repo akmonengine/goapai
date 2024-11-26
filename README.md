@@ -28,7 +28,7 @@ It is the pathfinding algorithm that finds itself the chain of Actions to reach 
 
 One of the advantage of Microlithic GOAP is that it is considered to generate new and unpredicted behaviors,
 where Monolithic uses predefined behaviors.
-One of its disadvantage is the computation requirements, and exponential explosion if the Actions, their Xonditions and Effects
+One of its disadvantage is the computation requirements, and exponential explosion if the Actions, their Conditions and Effects
 are not well scoped.
 
 ## Features
@@ -53,26 +53,26 @@ for a better representation of your world in your Actions.
 ## Basic Usage
 - First we need an Agent, to apply the AI on:
 ```go
-    type Entity struct {
-        agent      goapai.Agent
-        isHungry bool
-        hasWood bool
-    }
+type Entity struct {
+    agent      goapai.Agent
+    isHungry bool
+    hasWood bool
+}
 
-	entity := Entity{
-		attributes: Attributes{
-			isHungry: true,
-			hasWood: false,
-		},
-	}
+entity := Entity{
+    attributes: Attributes{
+        isHungry: true,
+        hasWood: false,
+    },
+}
 
-    entity.agent = goapai.CreateAgent(goals, actions)
+entity.agent = goapai.CreateAgent(goals, actions)
 ```
 
 - When you have a complex model and lot of data that does not requires to be mapped to the worldState (data not evolving during the Plan), you can use Sensors.
 Sensors are not required, but they can have a huge performance impact so use them whenever you can:
 ```go
-	goapai.SetSensor(&entity.agent, "entity", &entity)
+goapai.SetSensor(&entity.agent, "entity", &entity)
 ```
 
 - Create a list of actions available for your agent. Each Action can be configured:
@@ -81,28 +81,28 @@ Sensors are not required, but they can have a huge performance impact so use the
   - Its conditions, can be applied using the worldState attributes or a ConditionFn to check the entity properties directly.
   - Its effects, applied to the worldState.
 ```go
-	actions := goapai.Actions{}
+actions := goapai.Actions{}
 
-    actions.AddAction("fetch apple", 2, true, goapai.Conditions{}, goapai.Effects{
-        goapai.Effect[bool]{
-            Key:      ATTRIBUTE_HAS_APPLE,
-            Value:    true,
-        },
-    })
+actions.AddAction("fetch apple", 2, true, goapai.Conditions{}, goapai.Effects{
+    goapai.Effect[bool]{
+        Key:      ATTRIBUTE_HAS_APPLE,
+        Value:    true,
+    },
+})
 
-    actions.AddAction("eat", 1, true, goapai.Conditions{
-            goapai.ConditionBool{Key: ATTRIBUTE_HAS_APPLE, Value: true},
-            goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
-    }, goapai.Effects{
-        goapai.Effect[bool]{
-            Key:      ATTRIBUTE_HUNGRY,
-            Value:    false,
-        },
-        goapai.Effect[bool]{
-            Key:      ATTRIBUTE_HAS_APPLE,
-            Value:    false,
-        },
-    })
+actions.AddAction("eat", 1, true, goapai.Conditions{
+        goapai.ConditionBool{Key: ATTRIBUTE_HAS_APPLE, Value: true},
+        goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
+}, goapai.Effects{
+    goapai.Effect[bool]{
+        Key:      ATTRIBUTE_HUNGRY,
+        Value:    false,
+    },
+    goapai.Effect[bool]{
+        Key:      ATTRIBUTE_HAS_APPLE,
+        Value:    false,
+    },
+})
 ```
 
 - Create all the available goals for your agent. Each goal can be configured:
@@ -110,62 +110,62 @@ Sensors are not required, but they can have a huge performance impact so use the
   - Its priority function calculation, so that the Planner can choose the most important goal to work on.
   You can use Sensors for a better definition of the priority depending on your data.
 ```go
-	goals := goapai.Goals{
-		"eat": {
-			Conditions: []goapai.ConditionInterface{
-				goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
-			},
-			PriorityFn: func(sensors goapai.Sensors) float64 {
-				if sensors.GetSensor("entity").(*Entity).attributes.isHungry {
-					return 1.0
-				}
+goals := goapai.Goals{
+    "eat": {
+        Conditions: []goapai.ConditionInterface{
+            goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
+        },
+        PriorityFn: func(sensors goapai.Sensors) float64 {
+            if sensors.GetSensor("entity").(*Entity).attributes.isHungry {
+                return 1.0
+            }
 
-				return 0.0
-			},
-		},
-		"get wood": {
-			Conditions: []goapai.ConditionInterface{
-				goapai.Condition[int]{Key: ATTRIBUTE_HAS_WOOD, Value: true},
-			},
-			PriorityFn: func(sensors goapai.Sensors) float64 {
-				if !sensors.GetSensor("entity").(*Entity).attributes.hasWood {
-					return 0.5
-				}
+            return 0.0
+        },
+    },
+    "get wood": {
+        Conditions: []goapai.ConditionInterface{
+            goapai.Condition[int]{Key: ATTRIBUTE_HAS_WOOD, Value: true},
+        },
+        PriorityFn: func(sensors goapai.Sensors) float64 {
+            if !sensors.GetSensor("entity").(*Entity).attributes.hasWood {
+                return 0.5
+            }
 
-				return 0.0
-			},
-		},
-	}
-	entity.agent = goapai.CreateAgent(goals, actions)
+            return 0.0
+        },
+    },
+}
+entity.agent = goapai.CreateAgent(goals, actions)
 ```
 
 - Set your initial WorldState for your agent:
 ```go
-	goapai.SetStateBool(&entity.agent, ATTRIBUTE_HUNGRY, entity.isHungry)
-	goapai.SetStateBool(&entity.agent, ATTRIBUTE_HAS_WOOD, entity.hasWood)
+goapai.SetStateBool(&entity.agent, ATTRIBUTE_HUNGRY, entity.isHungry)
+goapai.SetStateBool(&entity.agent, ATTRIBUTE_HAS_WOOD, entity.hasWood)
 ```
 
 - Search the best Goal and the best Plan for it.
 The maxDepth argument defines the maximum number of steps acceptable to achieve the Goal:
 ```go
-	goalName, plan := goapai.GetPlan(entity.agent, 10)
+goalName, plan := goapai.GetPlan(entity.agent, 10)
 ```
 It returns the GoalName and the structure Plan being a slice of all the ordered Actions required for the Goal.
 
 Multiple types are available for your conditions, states and effects:
 ```go
-    goapai.State[T Numeric]
-    goapai.StateBool
-    goapai.StateString
+goapai.State[T Numeric]
+goapai.StateBool
+goapai.StateString
 
-    goapai.Condition[T Numeric]
-    goapai.ConditionBool
-    goapai.ConditionString
-    goapai.ConditionFn
+goapai.Condition[T Numeric]
+goapai.ConditionBool
+goapai.ConditionString
+goapai.ConditionFn
 
-    goapai.Effect[T Numeric]
-    goapai.EffectBool
-    goapai.EffectString
+goapai.Effect[T Numeric]
+goapai.EffectBool
+goapai.EffectString
 ```
 
 Depending on your requirements, the number of Agents and the number of Actions,
