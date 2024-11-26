@@ -456,7 +456,7 @@ func BenchmarkGoapAI(b *testing.B) {
 	//}, goapai.Effect{data: map[goapai.StateKey]goapai.StateInterface{}}),
 
 	actions.AddAction("action 81", 1, true, goapai.Conditions{
-		goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
+		&goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: true},
 	}, goapai.Effects{
 		goapai.Effect[int]{
 			Key:      ATTRIBUTE_3,
@@ -476,14 +476,14 @@ func BenchmarkGoapAI(b *testing.B) {
 	})
 
 	actions.AddAction("eat", 1, true, goapai.Conditions{
-		goapai.ConditionFn{Key: ATTRIBUTE_3, CheckFn: func(sensors goapai.Sensors) bool {
+		&goapai.ConditionFn{Key: ATTRIBUTE_3, CheckFn: func(sensors goapai.Sensors) bool {
 			if sensors.GetSensor("entity").(*Entity).attributes.hungry {
 				return true
 			}
 			return false
 		}},
-		goapai.Condition[int]{Key: ATTRIBUTE_3, Value: 1},
-		goapai.ConditionString{Key: ATTRIBUTE_4, Value: "wipattribute4"},
+		&goapai.Condition[int]{Key: ATTRIBUTE_3, Value: 1},
+		&goapai.ConditionString{Key: ATTRIBUTE_4, Value: "wipattribute4"},
 	}, goapai.Effects{
 		goapai.EffectBool{
 			Key:      ATTRIBUTE_HUNGRY,
@@ -566,9 +566,9 @@ func BenchmarkGoapAI(b *testing.B) {
 
 	goals := goapai.Goals{
 		"eat": {
-			Conditions: []goapai.ConditionInterface{
-				goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
-				goapai.Condition[int]{Key: ATTRIBUTE_5, Value: 2, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
+			Conditions: goapai.Conditions{
+				&goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
+				&goapai.Condition[int]{Key: ATTRIBUTE_5, Value: 2, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
 			},
 			PriorityFn: func(sensors goapai.Sensors) float64 {
 				if sensors.GetSensor("entity").(*Entity).attributes.hungry {
@@ -579,8 +579,8 @@ func BenchmarkGoapAI(b *testing.B) {
 			},
 		},
 		"play": {
-			Conditions: []goapai.ConditionInterface{
-				goapai.Condition[int]{Key: ATTRIBUTE_6, Value: 10, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
+			Conditions: goapai.Conditions{
+				&goapai.Condition[int]{Key: ATTRIBUTE_6, Value: 10, Operator: goapai.STATE_OPERATOR_UPPER_OR_EQUAL},
 			},
 			PriorityFn: func(sensors goapai.Sensors) float64 {
 				if sensors.GetSensor("entity").(*Entity).attributes.happiness < 50 {

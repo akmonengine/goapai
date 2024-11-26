@@ -59,7 +59,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 			}
 
 			simulatedStates, ok := simulateActionState(action, parentNode.states)
-			if ok == false {
+			if !ok {
 				continue
 			}
 
@@ -173,7 +173,10 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 		return states{}, false
 	}
 
-	data := action.effects.apply(nodeStates)
+	data, err := action.effects.apply(nodeStates)
+	if err != nil {
+		return states{}, false
+	}
 
 	return states{
 		Agent: nodeStates.Agent,

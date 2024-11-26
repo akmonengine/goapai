@@ -22,7 +22,6 @@ type Action struct {
 	repeatable bool
 	conditions Conditions
 	effects    Effects
-	effectFn   EffectFn
 }
 type Actions []*Action
 
@@ -213,12 +212,16 @@ func (effects Effects) satisfyStates(states states) bool {
 	return true
 }
 
-func (effects Effects) apply(states states) statesData {
+func (effects Effects) apply(states states) (statesData, error) {
 	data := maps.Clone(states.data)
 
 	for _, effect := range effects {
-		effect.apply(data)
+		err := effect.apply(data)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return data
+	return data, nil
 }
