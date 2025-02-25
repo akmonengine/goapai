@@ -2,7 +2,6 @@ package goapai
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 )
 
@@ -62,34 +61,38 @@ func (effect Effect[T]) check(states states) bool {
 		return false
 	}
 
-	if _, ok := states.data[effect.Key]; !ok {
+	k := states.data.GetIndex(effect.Key)
+	if k < 0 {
 		return false
 	}
-	if _, ok := states.data[effect.Key].(State[T]); !ok {
+	s := states.data[k]
+
+	if _, ok := s.(State[T]); !ok {
 		return false
 	}
 
-	s := states.data[effect.Key].(State[T])
-
-	return s.Value == effect.Value
+	return s.(State[T]).Value == effect.Value
 }
 
 func (effect Effect[T]) apply(data statesData) error {
-	if _, ok := data[effect.Key]; !ok {
+	k := data.GetIndex(effect.Key)
+	if k < 0 {
 		if slices.Contains([]arithmetic{EFFECT_ARITHMETIC_SET, EFFECT_ARITHMETIC_ADD}, effect.Operator) {
-			data[effect.Key] = State[T]{Value: effect.Value}
+			data = append(data, State[T]{Value: effect.Value})
 			return nil
 		} else if slices.Contains([]arithmetic{EFFECT_ARITHMETIC_SUBSTRACT}, effect.Operator) {
-			data[effect.Key] = State[T]{Value: -effect.Value}
+			data = append(data, State[T]{Value: -effect.Value})
 			return nil
 		}
 		return fmt.Errorf("data does not exist")
 	}
-	if _, ok := data[effect.Key].(State[T]); !ok {
+	s := data[k]
+
+	if _, ok := s.(State[T]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := data[effect.Key].(State[T])
+	state := s.(State[T])
 	switch effect.Operator {
 	case EFFECT_ARITHMETIC_SET:
 		state.Value = effect.Value
@@ -103,7 +106,7 @@ func (effect Effect[T]) apply(data statesData) error {
 		state.Value /= effect.Value
 	}
 
-	data[effect.Key] = state
+	data[k] = state
 
 	return nil
 }
@@ -120,14 +123,15 @@ func (effectBool EffectBool) check(states states) bool {
 		return false
 	}
 
-	if _, ok := states.data[effectBool.Key]; !ok {
+	k := states.data.GetIndex(effectBool.Key)
+	if k < 0 {
 		return false
 	}
-	if _, ok := states.data[effectBool.Key].(State[bool]); !ok {
+	if _, ok := states.data[k].(State[bool]); !ok {
 		return false
 	}
 
-	s := states.data[effectBool.Key].(State[bool])
+	s := states.data[k].(State[bool])
 
 	return s.Value == effectBool.Value
 }
@@ -137,17 +141,18 @@ func (effectBool EffectBool) apply(data statesData) error {
 		return fmt.Errorf("operation %v not allowed on bool type", effectBool.Operator)
 	}
 
-	if _, ok := data[effectBool.Key]; !ok {
-		data[effectBool.Key] = State[bool]{Value: effectBool.Value}
+	k := data.GetIndex(effectBool.Key)
+	if k < 0 {
+		data = append(data, State[bool]{Value: effectBool.Value})
 		return nil
 	}
-	if _, ok := data[effectBool.Key].(State[bool]); !ok {
+	if _, ok := data[k].(State[bool]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := data[effectBool.Key].(State[bool])
+	state := data[k].(State[bool])
 	state.Value = effectBool.Value
-	data[effectBool.Key] = state
+	data[k] = state
 
 	return nil
 }
@@ -159,14 +164,15 @@ type EffectString struct {
 }
 
 func (effectString EffectString) check(states states) bool {
-	if _, ok := states.data[effectString.Key]; !ok {
+	k := states.data.GetIndex(effectString.Key)
+	if k < 0 {
 		return false
 	}
-	if _, ok := states.data[effectString.Key].(State[string]); !ok {
+	if _, ok := states.data[k].(State[string]); !ok {
 		return false
 	}
 
-	s := states.data[effectString.Key].(State[string])
+	s := states.data[k].(State[string])
 
 	return s.Value == effectString.Value
 }
@@ -176,22 +182,23 @@ func (effectString EffectString) apply(data statesData) error {
 		return fmt.Errorf("arithmetic operation %v not allowed on string type", effectString.Operator)
 	}
 
-	if _, ok := data[effectString.Key]; !ok {
-		data[effectString.Key] = State[string]{Value: effectString.Value}
+	k := data.GetIndex(effectString.Key)
+	if k < 0 {
+		data = append(data, State[string]{Value: effectString.Value})
 		return nil
 	}
-	if _, ok := data[effectString.Key].(State[string]); !ok {
+	if _, ok := data[k].(State[string]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := data[effectString.Key].(State[string])
+	state := data[k].(State[string])
 	switch effectString.Operator {
 	case EFFECT_ARITHMETIC_SET:
 		state.Value = effectString.Value
 	case EFFECT_ARITHMETIC_ADD:
 		state.Value = fmt.Sprint(state.Value, effectString.Value)
 	}
-	data[effectString.Key] = state
+	data[k] = state
 
 	return nil
 }
@@ -213,7 +220,7 @@ func (effects Effects) satisfyStates(states states) bool {
 }
 
 func (effects Effects) apply(states states) (statesData, error) {
-	data := maps.Clone(states.data)
+	data := slices.Clone(states.data)
 
 	for _, effect := range effects {
 		err := effect.apply(data)

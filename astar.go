@@ -1,7 +1,6 @@
 package goapai
 
 import (
-	"maps"
 	"slices"
 )
 
@@ -25,7 +24,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 		Action: &Action{},
 		states: states{
 			Agent: from.Agent,
-			data:  maps.Clone(from.data),
+			data:  slices.Clone(from.data),
 			hash:  from.data.hashStates(),
 		},
 		parentNode: nil,
@@ -178,6 +177,7 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 		return states{}, false
 	}
 
+	data.sort()
 	return states{
 		Agent: nodeStates.Agent,
 		data:  data,

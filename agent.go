@@ -31,9 +31,10 @@ func CreateAgent(goals Goals, actions Actions) Agent {
 }
 
 func SetState[T Numeric | bool | string](agent *Agent, key StateKey, value T) {
-	agent.states.data[key] = State[T]{
+	agent.states.data = append(agent.states.data, State[T]{
+		Key:   key,
 		Value: value,
-	}
+	})
 }
 
 func SetSensor[T Sensor](agent *Agent, name string, value T) {

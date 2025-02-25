@@ -20,25 +20,23 @@ const (
 
 type Numeric interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-		~float32 | ~float64
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+	~float32 | ~float64
 }
 
 type StateInterface interface {
 	Check(states states, key StateKey) bool
-	String() string
+	GetKey() StateKey
+	GetValue() any
 }
 type State[T Numeric | bool | string] struct {
+	Key   StateKey
 	Value T
 }
 
 type StateKey uint16
 
-func (stateKey StateKey) String() string {
-	return strconv.Itoa(int(stateKey))
-}
-
-type statesData map[StateKey]StateInterface
+type statesData []StateInterface
 
 type states struct {
 	Agent *Agent
@@ -46,20 +44,27 @@ type states struct {
 	hash  uint64
 }
 
+func (state State[T]) GetKey() StateKey {
+	return state.Key
+}
+
 func (state State[T]) Check(states states, key StateKey) bool {
-	if s, ok := states.data[key]; ok {
-		if agentState, ok := s.(State[T]); ok {
-			if agentState.Value == state.Value {
-				return true
-			}
+	k := states.data.GetIndex(key)
+	if k < 0 {
+		return false
+	}
+	s := states.data[k]
+	if agentState, ok := s.(State[T]); ok {
+		if agentState.Value == state.Value {
+			return true
 		}
 	}
 
 	return false
 }
 
-func (state State[T]) String() string {
-	return fmt.Sprint(state.Value)
+func (state State[T]) GetValue() any {
+	return state.Value
 }
 
 // Check compares states and states2 by their hash.
@@ -67,19 +72,35 @@ func (states states) Check(states2 states) bool {
 	return states.hash == states2.hash
 }
 
+func (statesData statesData) GetIndex(stateKey StateKey) int {
+	for k, stateData := range statesData {
+		if stateData.GetKey() == stateKey {
+			return k
+		}
+	}
+
+	return -1
+}
+
+func (statesData statesData) sort() {
+	slices.SortFunc(statesData, func(a, b StateInterface) int {
+		if a.GetKey() > b.GetKey() {
+			return 1
+		} else if a.GetKey() < b.GetKey() {
+			return -1
+		}
+
+		return 0
+	})
+}
+
 func (statesData statesData) hashStates() uint64 {
 	hash := fnv.New64()
-	keys := make([]StateKey, 0, len(statesData))
 
-	for k := range statesData {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
-
-	for _, k := range keys {
-		hash.Write([]byte(k.String()))
+	for _, data := range statesData {
+		hash.Write([]byte(strconv.Itoa(int(data.GetKey()))))
 		hash.Write([]byte(":"))
-		hash.Write([]byte(statesData[k].String()))
+		hash.Write([]byte(fmt.Sprint(data.GetValue())))
 		hash.Write([]byte(";"))
 	}
 
@@ -129,33 +150,36 @@ func (condition *Condition[T]) GetKey() StateKey {
 }
 
 func (condition *Condition[T]) Check(states states) bool {
-	if s, ok := states.data[condition.Key]; ok {
-		if state, ok := s.(State[T]); ok {
-			switch condition.Operator {
-			case STATE_OPERATOR_EQUAL:
-				if state.Value == condition.Value {
-					return true
-				}
-			case STATE_OPERATOR_NOT_EQUAL:
-				if state.Value != condition.Value {
-					return true
-				}
-			case STATE_OPERATOR_LOWER_OR_EQUAL:
-				if state.Value <= condition.Value {
-					return true
-				}
-			case STATE_OPERATOR_LOWER:
-				if state.Value < condition.Value {
-					return true
-				}
-			case STATE_OPERATOR_UPPER_OR_EQUAL:
-				if state.Value >= condition.Value {
-					return true
-				}
-			case STATE_OPERATOR_UPPER:
-				if state.Value > condition.Value {
-					return true
-				}
+	k := states.data.GetIndex(condition.Key)
+	if k < 0 {
+		return false
+	}
+	s := states.data[k]
+	if state, ok := s.(State[T]); ok {
+		switch condition.Operator {
+		case STATE_OPERATOR_EQUAL:
+			if state.Value == condition.Value {
+				return true
+			}
+		case STATE_OPERATOR_NOT_EQUAL:
+			if state.Value != condition.Value {
+				return true
+			}
+		case STATE_OPERATOR_LOWER_OR_EQUAL:
+			if state.Value <= condition.Value {
+				return true
+			}
+		case STATE_OPERATOR_LOWER:
+			if state.Value < condition.Value {
+				return true
+			}
+		case STATE_OPERATOR_UPPER_OR_EQUAL:
+			if state.Value >= condition.Value {
+				return true
+			}
+		case STATE_OPERATOR_UPPER:
+			if state.Value > condition.Value {
+				return true
 			}
 		}
 	}
@@ -174,20 +198,23 @@ func (conditionBool *ConditionBool) GetKey() StateKey {
 }
 
 func (conditionBool *ConditionBool) Check(states states) bool {
-	if s, ok := states.data[conditionBool.Key]; ok {
-		if state, ok := s.(State[bool]); ok {
-			switch conditionBool.Operator {
-			case STATE_OPERATOR_EQUAL:
-				if state.Value == conditionBool.Value {
-					return true
-				}
-			case STATE_OPERATOR_NOT_EQUAL:
-				if state.Value != conditionBool.Value {
-					return true
-				}
-			default:
-				return false
+	k := states.data.GetIndex(conditionBool.Key)
+	if k < 0 {
+		return false
+	}
+	s := states.data[k]
+	if state, ok := s.(State[bool]); ok {
+		switch conditionBool.Operator {
+		case STATE_OPERATOR_EQUAL:
+			if state.Value == conditionBool.Value {
+				return true
 			}
+		case STATE_OPERATOR_NOT_EQUAL:
+			if state.Value != conditionBool.Value {
+				return true
+			}
+		default:
+			return false
 		}
 	}
 
@@ -205,20 +232,23 @@ func (conditionString *ConditionString) GetKey() StateKey {
 }
 
 func (conditionString *ConditionString) Check(states states) bool {
-	if s, ok := states.data[conditionString.Key]; ok {
-		if state, ok := s.(State[string]); ok {
-			switch conditionString.Operator {
-			case STATE_OPERATOR_EQUAL:
-				if state.Value == conditionString.Value {
-					return true
-				}
-			case STATE_OPERATOR_NOT_EQUAL:
-				if state.Value != conditionString.Value {
-					return true
-				}
-			default:
-				return false
+	k := states.data.GetIndex(conditionString.Key)
+	if k < 0 {
+		return false
+	}
+	s := states.data[k]
+	if state, ok := s.(State[string]); ok {
+		switch conditionString.Operator {
+		case STATE_OPERATOR_EQUAL:
+			if state.Value == conditionString.Value {
+				return true
 			}
+		case STATE_OPERATOR_NOT_EQUAL:
+			if state.Value != conditionString.Value {
+				return true
+			}
+		default:
+			return false
 		}
 	}
 
