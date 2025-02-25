@@ -20,11 +20,13 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 	availableActions := getImpactingActions(from, actions)
 	openNodes := make([]node, 0, len(availableActions))
 
+	data := slices.Clone(from.data)
+	data.sort()
 	openNodes = append(openNodes, node{
 		Action: &Action{},
 		states: states{
 			Agent: from.Agent,
-			data:  slices.Clone(from.data),
+			data:  data,
 			hash:  from.data.hashStates(),
 		},
 		parentNode: nil,

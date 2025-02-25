@@ -86,13 +86,11 @@ func (effect Effect[T]) apply(data statesData) error {
 		}
 		return fmt.Errorf("data does not exist")
 	}
-	s := data[k]
-
-	if _, ok := s.(State[T]); !ok {
+	if _, ok := data[k].(State[T]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := s.(State[T])
+	state := data[k].(State[T])
 	switch effect.Operator {
 	case EFFECT_ARITHMETIC_SET:
 		state.Value = effect.Value

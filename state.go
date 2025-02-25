@@ -1,6 +1,7 @@
 package goapai
 
 import (
+	"encoding/binary"
 	"fmt"
 	"hash/fnv"
 	"slices"
@@ -19,9 +20,9 @@ const (
 )
 
 type Numeric interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
-	~float32 | ~float64
+	~int8 | ~int |
+		~uint8 | ~uint64 |
+		~float64
 }
 
 type StateInterface interface {
@@ -100,7 +101,25 @@ func (statesData statesData) hashStates() uint64 {
 	for _, data := range statesData {
 		hash.Write([]byte(strconv.Itoa(int(data.GetKey()))))
 		hash.Write([]byte(":"))
-		hash.Write([]byte(fmt.Sprint(data.GetValue())))
+
+		switch v := data.GetValue().(type) {
+		case int8:
+			hash.Write([]byte(fmt.Sprintf("%v", v)))
+		case int:
+			hash.Write([]byte(strconv.Itoa(v)))
+		case uint8:
+			hash.Write([]byte(fmt.Sprintf("%v", v)))
+		case uint64:
+			hash.Write([]byte(fmt.Sprintf("%v", v)))
+		case float64:
+			hash.Write([]byte(strconv.FormatFloat(v, 'f', -1, 64)))
+		case string:
+			hash.Write([]byte(v))
+		case []byte:
+			hash.Write(v)
+		default:
+			binary.Write(hash, binary.LittleEndian, data.GetValue())
+		}
 		hash.Write([]byte(";"))
 	}
 
