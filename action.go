@@ -123,11 +123,11 @@ func (effectBool EffectBool) check(states states) bool {
 	if _, ok := states.data[effectBool.Key]; !ok {
 		return false
 	}
-	if _, ok := states.data[effectBool.Key].(StateBool); !ok {
+	if _, ok := states.data[effectBool.Key].(State[bool]); !ok {
 		return false
 	}
 
-	s := states.data[effectBool.Key].(StateBool)
+	s := states.data[effectBool.Key].(State[bool])
 
 	return s.Value == effectBool.Value
 }
@@ -138,14 +138,14 @@ func (effectBool EffectBool) apply(data statesData) error {
 	}
 
 	if _, ok := data[effectBool.Key]; !ok {
-		data[effectBool.Key] = StateBool{Value: effectBool.Value}
+		data[effectBool.Key] = State[bool]{Value: effectBool.Value}
 		return nil
 	}
-	if _, ok := data[effectBool.Key].(StateBool); !ok {
+	if _, ok := data[effectBool.Key].(State[bool]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := data[effectBool.Key].(StateBool)
+	state := data[effectBool.Key].(State[bool])
 	state.Value = effectBool.Value
 	data[effectBool.Key] = state
 
@@ -162,11 +162,11 @@ func (effectString EffectString) check(states states) bool {
 	if _, ok := states.data[effectString.Key]; !ok {
 		return false
 	}
-	if _, ok := states.data[effectString.Key].(StateString); !ok {
+	if _, ok := states.data[effectString.Key].(State[string]); !ok {
 		return false
 	}
 
-	s := states.data[effectString.Key].(StateString)
+	s := states.data[effectString.Key].(State[string])
 
 	return s.Value == effectString.Value
 }
@@ -177,14 +177,14 @@ func (effectString EffectString) apply(data statesData) error {
 	}
 
 	if _, ok := data[effectString.Key]; !ok {
-		data[effectString.Key] = StateString{Value: effectString.Value}
+		data[effectString.Key] = State[string]{Value: effectString.Value}
 		return nil
 	}
-	if _, ok := data[effectString.Key].(StateString); !ok {
+	if _, ok := data[effectString.Key].(State[string]); !ok {
 		return fmt.Errorf("type does not match")
 	}
 
-	state := data[effectString.Key].(StateString)
+	state := data[effectString.Key].(State[string])
 	switch effectString.Operator {
 	case EFFECT_ARITHMETIC_SET:
 		state.Value = effectString.Value

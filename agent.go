@@ -30,20 +30,8 @@ func CreateAgent(goals Goals, actions Actions) Agent {
 	return agent
 }
 
-func SetState[T Numeric](agent *Agent, key StateKey, value T) {
+func SetState[T Numeric | bool | string](agent *Agent, key StateKey, value T) {
 	agent.states.data[key] = State[T]{
-		Value: value,
-	}
-}
-
-func SetStateBool(agent *Agent, key StateKey, value bool) {
-	agent.states.data[key] = StateBool{
-		Value: value,
-	}
-}
-
-func SetStateString(agent *Agent, key StateKey, value string) {
-	agent.states.data[key] = StateString{
 		Value: value,
 	}
 }

@@ -28,16 +28,8 @@ type StateInterface interface {
 	Check(states states, key StateKey) bool
 	String() string
 }
-type State[T Numeric] struct {
+type State[T Numeric | bool | string] struct {
 	Value T
-}
-
-type StateBool struct {
-	Value bool
-}
-
-type StateString struct {
-	Value string
 }
 
 type StateKey uint16
@@ -68,32 +60,6 @@ func (state State[T]) Check(states states, key StateKey) bool {
 
 func (state State[T]) String() string {
 	return fmt.Sprint(state.Value)
-}
-
-func (stateBool StateBool) Check(states states, key StateKey) bool {
-	return stateBool == states.data[key]
-}
-
-// String transforms the boolean value to string.
-func (stateBool StateBool) String() string {
-	return strconv.FormatBool(stateBool.Value)
-}
-
-func (stateString StateString) Check(states states, key StateKey) bool {
-	if s, ok := states.data[key]; ok {
-		if agentState, ok := s.(StateString); ok {
-			if agentState.Value == stateString.Value {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-// String returns the string value.
-func (stateString StateString) String() string {
-	return stateString.Value
 }
 
 // Check compares states and states2 by their hash.
@@ -209,7 +175,7 @@ func (conditionBool *ConditionBool) GetKey() StateKey {
 
 func (conditionBool *ConditionBool) Check(states states) bool {
 	if s, ok := states.data[conditionBool.Key]; ok {
-		if state, ok := s.(StateBool); ok {
+		if state, ok := s.(State[bool]); ok {
 			switch conditionBool.Operator {
 			case STATE_OPERATOR_EQUAL:
 				if state.Value == conditionBool.Value {
@@ -240,7 +206,7 @@ func (conditionString *ConditionString) GetKey() StateKey {
 
 func (conditionString *ConditionString) Check(states states) bool {
 	if s, ok := states.data[conditionString.Key]; ok {
-		if state, ok := s.(StateString); ok {
+		if state, ok := s.(State[string]); ok {
 			switch conditionString.Operator {
 			case STATE_OPERATOR_EQUAL:
 				if state.Value == conditionString.Value {
