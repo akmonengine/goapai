@@ -34,19 +34,16 @@ func (a *action) Cost() float32 {
 }
 
 func BenchmarkKelindarGoap(b *testing.B) {
-	b.StopTimer()
-
-	init := goap.StateOf("hunger=80", "!food", "!tired")
-	goal := goap.StateOf("food>80")
+	init := goap.StateOf("attribute1=80", "!attribute2", "!attribute3")
+	goal := goap.StateOf("attribute2>80")
 
 	actions := []goap.Action{
-		NewAction("eat", "food>0", "hunger-50,food-5"),
-		NewAction("forage", "tired<50", "tired+20,food+10,hunger+5"),
-		NewAction("sleep", "tired>30", "tired-30"),
+		NewAction("action1", "attribute1>0", "attribute1-50,attribute2-5"),
+		NewAction("action2", "attribute3<50", "attribute3+20,attribute2+10,attribute1+5"),
+		NewAction("action3", "attribute3>30", "attribute3-30"),
 	}
 
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := goap.Plan(init, goal, actions)
 		if err != nil {
 			panic(err)
