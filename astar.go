@@ -13,12 +13,12 @@ type node struct {
 	totalCost  float64
 	heuristic  float64
 	depth      int
-	closed     bool
 }
 
 func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
 	openNodes := make([]node, 0, len(availableActions))
+	closedNodes := make([]node, 0, len(availableActions))
 
 	data := slices.Clone(from.data)
 	data.sort()
@@ -34,14 +34,13 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 		totalCost:  0,
 		heuristic:  0,
 		depth:      0,
-		closed:     false,
 	})
 
 	for openNodeKey := 0; openNodeKey != -1; openNodeKey = getLessCostlyNodeKey(openNodes) {
 		parentNode := openNodes[openNodeKey]
 		if parentNode.depth > maxDepth {
-			parentNode.closed = true
-			openNodes[openNodeKey] = parentNode
+			openNodes = append(openNodes[:openNodeKey], openNodes[openNodeKey+1:]...)
+			closedNodes = append(closedNodes, parentNode)
 			continue
 		}
 
@@ -64,7 +63,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				continue
 			}
 
-			if nodeKey, found := fetchNode(openNodes, false, simulatedStates); found {
+			if nodeKey, found := fetchNode(openNodes, simulatedStates); found {
 				node := openNodes[nodeKey]
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
@@ -76,7 +75,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 
 					openNodes[nodeKey] = node
 				}
-			} else if nodeKey, found := fetchNode(openNodes, true, simulatedStates); found {
+			} else if nodeKey, found := fetchNode(closedNodes, simulatedStates); found {
 				node := openNodes[nodeKey]
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
@@ -86,8 +85,8 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 					node.totalCost = parentNode.cost + action.cost + node.heuristic
 					node.depth = parentNode.depth + 1
 
-					node.closed = false
 					openNodes[openNodeKey] = node
+					closedNodes = append(closedNodes[:nodeKey], closedNodes[nodeKey+1:]...)
 				}
 			} else {
 				heuristic := computeHeuristic(from, goal, simulatedStates)
@@ -99,13 +98,12 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 					totalCost:  parentNode.cost + action.cost + heuristic,
 					heuristic:  heuristic,
 					depth:      parentNode.depth + 1,
-					closed:     false,
 				})
 			}
 		}
 
-		parentNode.closed = true
-		openNodes[openNodeKey] = parentNode
+		openNodes = append(openNodes[:openNodeKey], openNodes[openNodeKey+1:]...)
+		closedNodes = append(closedNodes, parentNode)
 	}
 
 	return Plan{}
@@ -129,9 +127,6 @@ func getLessCostlyNodeKey(openNodes []node) int {
 	lowestKey := -1
 
 	for key, node := range openNodes {
-		if node.closed {
-			continue
-		}
 		if lowestKey < 0 || node.totalCost < openNodes[lowestKey].totalCost {
 			lowestKey = key
 		}
@@ -140,12 +135,8 @@ func getLessCostlyNodeKey(openNodes []node) int {
 	return lowestKey
 }
 
-func fetchNode(nodes []node, closed bool, states states) (int, bool) {
+func fetchNode(nodes []node, states states) (int, bool) {
 	for k, n := range nodes {
-		if n.closed != closed {
-			continue
-		}
-
 		if n.states.Check(states) {
 			return k, true
 		}
