@@ -8,11 +8,11 @@ import (
 type arithmetic uint8
 
 const (
-	EFFECT_ARITHMETIC_SET arithmetic = iota
-	EFFECT_ARITHMETIC_ADD
-	EFFECT_ARITHMETIC_SUBSTRACT
-	EFFECT_ARITHMETIC_MULTIPLY
-	EFFECT_ARITHMETIC_DIVIDE
+	SET arithmetic = iota
+	ADD
+	SUBSTRACT
+	MULTIPLY
+	DIVIDE
 )
 
 type Action struct {
@@ -51,13 +51,13 @@ type EffectInterface interface {
 
 type Effect[T Numeric] struct {
 	Key      StateKey
-	Value    T
 	Operator arithmetic
+	Value    T
 }
 
 func (effect Effect[T]) check(states states) bool {
 	// Other operators than '=' mean the effect will have an impact of the states
-	if effect.Operator != EFFECT_ARITHMETIC_SET {
+	if effect.Operator != SET {
 		return false
 	}
 
@@ -77,10 +77,10 @@ func (effect Effect[T]) check(states states) bool {
 func (effect Effect[T]) apply(data statesData) error {
 	k := data.GetIndex(effect.Key)
 	if k < 0 {
-		if slices.Contains([]arithmetic{EFFECT_ARITHMETIC_SET, EFFECT_ARITHMETIC_ADD}, effect.Operator) {
+		if slices.Contains([]arithmetic{SET, ADD}, effect.Operator) {
 			data = append(data, State[T]{Value: effect.Value})
 			return nil
-		} else if slices.Contains([]arithmetic{EFFECT_ARITHMETIC_SUBSTRACT}, effect.Operator) {
+		} else if slices.Contains([]arithmetic{SUBSTRACT}, effect.Operator) {
 			data = append(data, State[T]{Value: -effect.Value})
 			return nil
 		}
@@ -92,15 +92,15 @@ func (effect Effect[T]) apply(data statesData) error {
 
 	state := data[k].(State[T])
 	switch effect.Operator {
-	case EFFECT_ARITHMETIC_SET:
+	case SET:
 		state.Value = effect.Value
-	case EFFECT_ARITHMETIC_ADD:
+	case ADD:
 		state.Value += effect.Value
-	case EFFECT_ARITHMETIC_SUBSTRACT:
+	case SUBSTRACT:
 		state.Value -= effect.Value
-	case EFFECT_ARITHMETIC_MULTIPLY:
+	case MULTIPLY:
 		state.Value *= effect.Value
-	case EFFECT_ARITHMETIC_DIVIDE:
+	case DIVIDE:
 		state.Value /= effect.Value
 	}
 
@@ -117,7 +117,7 @@ type EffectBool struct {
 
 func (effectBool EffectBool) check(states states) bool {
 	// Other operators than '=' is not allowed
-	if effectBool.Operator != EFFECT_ARITHMETIC_SET {
+	if effectBool.Operator != SET {
 		return false
 	}
 
@@ -135,7 +135,7 @@ func (effectBool EffectBool) check(states states) bool {
 }
 
 func (effectBool EffectBool) apply(data statesData) error {
-	if effectBool.Operator != EFFECT_ARITHMETIC_SET {
+	if effectBool.Operator != SET {
 		return fmt.Errorf("operation %v not allowed on bool type", effectBool.Operator)
 	}
 
@@ -176,7 +176,7 @@ func (effectString EffectString) check(states states) bool {
 }
 
 func (effectString EffectString) apply(data statesData) error {
-	if !slices.Contains([]arithmetic{EFFECT_ARITHMETIC_SET, EFFECT_ARITHMETIC_ADD}, effectString.Operator) {
+	if !slices.Contains([]arithmetic{SET, ADD}, effectString.Operator) {
 		return fmt.Errorf("arithmetic operation %v not allowed on string type", effectString.Operator)
 	}
 
@@ -191,9 +191,9 @@ func (effectString EffectString) apply(data statesData) error {
 
 	state := data[k].(State[string])
 	switch effectString.Operator {
-	case EFFECT_ARITHMETIC_SET:
+	case SET:
 		state.Value = effectString.Value
-	case EFFECT_ARITHMETIC_ADD:
+	case ADD:
 		state.Value = fmt.Sprint(state.Value, effectString.Value)
 	}
 	data[k] = state

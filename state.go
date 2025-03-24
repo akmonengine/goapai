@@ -11,18 +11,18 @@ import (
 type operator uint8
 
 const (
-	STATE_OPERATOR_EQUAL operator = iota
-	STATE_OPERATOR_NOT_EQUAL
-	STATE_OPERATOR_LOWER_OR_EQUAL
-	STATE_OPERATOR_LOWER
-	STATE_OPERATOR_UPPER_OR_EQUAL
-	STATE_OPERATOR_UPPER
+	EQUAL operator = iota
+	NOT_EQUAL
+	LOWER_OR_EQUAL
+	LOWER
+	UPPER_OR_EQUAL
+	UPPER
 )
 
 type Numeric interface {
 	~int8 | ~int |
-		~uint8 | ~uint64 |
-		~float64
+	~uint8 | ~uint64 |
+	~float64
 }
 
 type StateInterface interface {
@@ -176,27 +176,27 @@ func (condition *Condition[T]) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[T]); ok {
 		switch condition.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_LOWER_OR_EQUAL:
+		case LOWER_OR_EQUAL:
 			if state.Value <= condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_LOWER:
+		case LOWER:
 			if state.Value < condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_UPPER_OR_EQUAL:
+		case UPPER_OR_EQUAL:
 			if state.Value >= condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_UPPER:
+		case UPPER:
 			if state.Value > condition.Value {
 				return true
 			}
@@ -224,11 +224,11 @@ func (conditionBool *ConditionBool) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[bool]); ok {
 		switch conditionBool.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == conditionBool.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != conditionBool.Value {
 				return true
 			}
@@ -258,11 +258,11 @@ func (conditionString *ConditionString) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[string]); ok {
 		switch conditionString.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == conditionString.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != conditionString.Value {
 				return true
 			}

@@ -22,46 +22,22 @@ func BenchmarkGoapAI(b *testing.B) {
 	actions := goapai.Actions{}
 
 	actions.AddAction("action1", 1, true, goapai.Conditions{
-		&goapai.Condition[int]{Key: ATTRIBUTE_1, Value: 0, Operator: goapai.STATE_OPERATOR_UPPER},
+		&goapai.Condition[int]{Key: ATTRIBUTE_1, Operator: goapai.UPPER, Value: 0},
 	}, goapai.Effects{
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_1,
-			Value:    50,
-			Operator: goapai.EFFECT_ARITHMETIC_SUBSTRACT,
-		},
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_2,
-			Value:    5,
-			Operator: goapai.EFFECT_ARITHMETIC_SUBSTRACT,
-		},
+		goapai.Effect[int]{Key: ATTRIBUTE_1, Operator: goapai.SUBSTRACT, Value: 50},
+		goapai.Effect[int]{Key: ATTRIBUTE_2, Operator: goapai.SUBSTRACT, Value: 5},
 	})
 	actions.AddAction("action2", 1, true, goapai.Conditions{
-		&goapai.Condition[int]{Key: ATTRIBUTE_3, Value: 50, Operator: goapai.STATE_OPERATOR_LOWER},
+		&goapai.Condition[int]{Key: ATTRIBUTE_3, Operator: goapai.LOWER, Value: 50},
 	}, goapai.Effects{
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_3,
-			Value:    20,
-			Operator: goapai.EFFECT_ARITHMETIC_ADD,
-		},
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_2,
-			Value:    10,
-			Operator: goapai.EFFECT_ARITHMETIC_ADD,
-		},
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_1,
-			Value:    5,
-			Operator: goapai.EFFECT_ARITHMETIC_ADD,
-		},
+		goapai.Effect[int]{Key: ATTRIBUTE_3, Operator: goapai.ADD, Value: 20},
+		goapai.Effect[int]{Key: ATTRIBUTE_2, Operator: goapai.ADD, Value: 10},
+		goapai.Effect[int]{Key: ATTRIBUTE_1, Operator: goapai.ADD, Value: 5},
 	})
 	actions.AddAction("action3", 1, true, goapai.Conditions{
-		&goapai.Condition[int]{Key: ATTRIBUTE_3, Value: 30, Operator: goapai.STATE_OPERATOR_UPPER},
+		&goapai.Condition[int]{Key: ATTRIBUTE_3, Operator: goapai.UPPER, Value: 30},
 	}, goapai.Effects{
-		goapai.Effect[int]{
-			Key:      ATTRIBUTE_3,
-			Value:    30,
-			Operator: goapai.EFFECT_ARITHMETIC_SUBSTRACT,
-		},
+		goapai.Effect[int]{Key: ATTRIBUTE_3, Operator: goapai.SUBSTRACT, Value: 30},
 	})
 
 	entity := Entity{attributes: Attributes{}}
@@ -69,7 +45,7 @@ func BenchmarkGoapAI(b *testing.B) {
 	goals := goapai.Goals{
 		"goal1": {
 			Conditions: goapai.Conditions{
-				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 80, Operator: goapai.STATE_OPERATOR_UPPER},
+				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 80, Operator: goapai.UPPER},
 			},
 			PriorityFn: func(sensors goapai.Sensors) float64 {
 				return 1.0
@@ -77,7 +53,7 @@ func BenchmarkGoapAI(b *testing.B) {
 		},
 		"goal2": {
 			Conditions: goapai.Conditions{
-				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 100, Operator: goapai.STATE_OPERATOR_EQUAL},
+				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 100, Operator: goapai.EQUAL},
 			},
 			PriorityFn: func(sensors goapai.Sensors) float64 {
 				return 0.0
