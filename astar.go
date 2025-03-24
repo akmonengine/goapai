@@ -76,7 +76,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 					openNodes[nodeKey] = node
 				}
 			} else if nodeKey, found := fetchNode(closedNodes, simulatedStates); found {
-				node := openNodes[nodeKey]
+				node := closedNodes[nodeKey]
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
 					node.states = simulatedStates
