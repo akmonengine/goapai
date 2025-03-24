@@ -27,7 +27,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 		states: states{
 			Agent: from.Agent,
 			data:  data,
-			hash:  from.data.hashStates(),
+			hash:  data.hashStates(),
 		},
 		parentNode: nil,
 		cost:       0,
@@ -179,10 +179,14 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 }
 
 func allowedRepetition(action *Action, parentNode node) bool {
+	if action.repeatable {
+		return true
+	}
+
 	node := &parentNode
 	for node != nil {
 		if node.Action.name == action.name {
-			return action.repeatable
+			return false
 		}
 
 		node = node.parentNode
