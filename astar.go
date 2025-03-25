@@ -2,6 +2,7 @@ package goapai
 
 import (
 	"slices"
+	"sync"
 )
 
 type node struct {
@@ -15,10 +16,21 @@ type node struct {
 	depth      int
 }
 
+var nodesPool = sync.Pool{
+	New: func() any {
+		return make([]node, 0, 32)
+	},
+}
+
 func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
-	openNodes := make([]node, 0, len(availableActions))
-	closedNodes := make([]node, 0, len(availableActions))
+	openNodes := nodesPool.Get().([]node)
+	closedNodes := nodesPool.Get().([]node)
+
+	defer func() {
+		nodesPool.Put(openNodes[:0])
+		nodesPool.Put(closedNodes[:0])
+	}()
 
 	data := slices.Clone(from.data)
 	data.sort()
