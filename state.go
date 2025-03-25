@@ -2,7 +2,6 @@ package goapai
 
 import (
 	"encoding/binary"
-	"fmt"
 	"hash/fnv"
 	"slices"
 	"strconv"
@@ -98,19 +97,25 @@ func (statesData statesData) sort() {
 func (statesData statesData) hashStates() uint64 {
 	hash := fnv.New64()
 
+	buf := make([]byte, binary.MaxVarintLen64)
 	for _, data := range statesData {
-		hash.Write([]byte(strconv.Itoa(int(data.GetKey()))))
+		n := binary.PutVarint(buf, int64(data.GetKey()))
+		hash.Write(buf[:n])
 		hash.Write([]byte(":"))
 
 		switch v := data.GetValue().(type) {
 		case int8:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutVarint(buf, int64(v))
+			hash.Write(buf[:n])
 		case int:
-			hash.Write([]byte(strconv.Itoa(v)))
+			n = binary.PutVarint(buf, int64(v))
+			hash.Write(buf[:n])
 		case uint8:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutUvarint(buf, uint64(v))
+			hash.Write(buf[:n])
 		case uint64:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutUvarint(buf, v)
+			hash.Write(buf[:n])
 		case float64:
 			hash.Write([]byte(strconv.FormatFloat(v, 'f', -1, 64)))
 		case string:
