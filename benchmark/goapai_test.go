@@ -47,7 +47,7 @@ func BenchmarkGoapAI(b *testing.B) {
 			Conditions: goapai.Conditions{
 				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 80, Operator: goapai.UPPER},
 			},
-			PriorityFn: func(sensors goapai.Sensors) float64 {
+			PriorityFn: func(sensors goapai.Sensors) float32 {
 				return 1.0
 			},
 		},
@@ -55,7 +55,7 @@ func BenchmarkGoapAI(b *testing.B) {
 			Conditions: goapai.Conditions{
 				&goapai.Condition[int]{Key: ATTRIBUTE_2, Value: 100, Operator: goapai.EQUAL},
 			},
-			PriorityFn: func(sensors goapai.Sensors) float64 {
+			PriorityFn: func(sensors goapai.Sensors) float32 {
 				return 0.0
 			},
 		},

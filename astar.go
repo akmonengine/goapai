@@ -10,10 +10,10 @@ type node struct {
 	states states
 
 	parentNode *node
-	cost       float64
-	totalCost  float64
-	heuristic  float64
-	depth      int
+	cost       float32
+	totalCost  float32
+	heuristic  float32
+	depth      uint16
 }
 
 var nodesPool = sync.Pool{
@@ -50,7 +50,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 
 	for openNodeKey := 0; openNodeKey != -1; openNodeKey = getLessCostlyNodeKey(openNodes) {
 		parentNode := openNodes[openNodeKey]
-		if parentNode.depth > maxDepth {
+		if parentNode.depth > uint16(maxDepth) {
 			openNodes = append(openNodes[:openNodeKey], openNodes[openNodeKey+1:]...)
 			closedNodes = append(closedNodes, parentNode)
 			continue
@@ -224,8 +224,8 @@ A very simple (empiristic) model for h using:
 
 We try to be conservative and reduce the number of steps
 */
-func computeHeuristic(fromStates states, goal goalInterface, states states) float64 {
-	missingGoalsCount := float64(countMissingGoal(goal, states))
+func computeHeuristic(fromStates states, goal goalInterface, states states) float32 {
+	missingGoalsCount := float32(countMissingGoal(goal, states))
 
 	h := missingGoalsCount
 

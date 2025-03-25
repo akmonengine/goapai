@@ -17,14 +17,14 @@ const (
 
 type Action struct {
 	name       string
-	cost       float64
+	cost       float32
 	repeatable bool
 	conditions Conditions
 	effects    Effects
 }
 type Actions []*Action
 
-func (actions *Actions) AddAction(name string, cost float64, repeatable bool, conditions Conditions, effects Effects) {
+func (actions *Actions) AddAction(name string, cost float32, repeatable bool, conditions Conditions, effects Effects) {
 	action := Action{
 		name:       name,
 		cost:       cost,
