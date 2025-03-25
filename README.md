@@ -115,7 +115,7 @@ goals := goapai.Goals{
         Conditions: []goapai.ConditionInterface{
             &goapai.ConditionBool{Key: ATTRIBUTE_HUNGRY, Value: false},
         },
-        PriorityFn: func(sensors goapai.Sensors) float64 {
+        PriorityFn: func(sensors goapai.Sensors) float32 {
             if sensors.GetSensor("entity").(*Entity).attributes.isHungry {
                 return 1.0
             }
@@ -127,7 +127,7 @@ goals := goapai.Goals{
         Conditions: []goapai.ConditionInterface{
             &goapai.Condition[int]{Key: ATTRIBUTE_HAS_WOOD, Value: true},
         },
-        PriorityFn: func(sensors goapai.Sensors) float64 {
+        PriorityFn: func(sensors goapai.Sensors) float32 {
             if !sensors.GetSensor("entity").(*Entity).attributes.hasWood {
                 return 0.5
             }

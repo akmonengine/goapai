@@ -1,6 +1,8 @@
 module benchmark
 
-go 1.23.0
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
 	github.com/kelindar/goap v0.0.0-20231112144204-e9595370b8d7

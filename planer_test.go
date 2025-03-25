@@ -6,7 +6,7 @@ func TestPlan_GetTotalCost(t *testing.T) {
 	tests := []struct {
 		name string
 		plan Plan
-		want float64
+		want float32
 	}{
 		{"plan 1", Plan{}, 0.0},
 		{"plan 2", Plan{{

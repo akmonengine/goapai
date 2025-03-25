@@ -4,13 +4,13 @@ import "fmt"
 
 type Plan Actions
 
-type GoalPriorityFn func(sensors Sensors) float64
+type GoalPriorityFn func(sensors Sensors) float32
 
 // GetTotalCost returns the cost of Plan.
 //
 // This total cost is the sum of all actions's cost.
-func (plan Plan) GetTotalCost() float64 {
-	cost := 0.0
+func (plan Plan) GetTotalCost() float32 {
+	var cost float32
 
 	for _, action := range plan {
 		cost += action.cost
@@ -37,7 +37,7 @@ func GetPlan(agent Agent, maxDepth int) (GoalName, Plan) {
 
 func (agent *Agent) getPrioritizedGoalName() (GoalName, error) {
 	var prioritizedGoalName GoalName
-	var prioritizedValue float64
+	var prioritizedValue float32
 
 	for name, goal := range agent.goals {
 		priority := goal.PriorityFn(agent.sensors)

@@ -2,7 +2,6 @@ package goapai
 
 import (
 	"encoding/binary"
-	"fmt"
 	"hash/fnv"
 	"slices"
 	"strconv"
@@ -11,18 +10,18 @@ import (
 type operator uint8
 
 const (
-	STATE_OPERATOR_EQUAL operator = iota
-	STATE_OPERATOR_NOT_EQUAL
-	STATE_OPERATOR_LOWER_OR_EQUAL
-	STATE_OPERATOR_LOWER
-	STATE_OPERATOR_UPPER_OR_EQUAL
-	STATE_OPERATOR_UPPER
+	EQUAL operator = iota
+	NOT_EQUAL
+	LOWER_OR_EQUAL
+	LOWER
+	UPPER_OR_EQUAL
+	UPPER
 )
 
 type Numeric interface {
 	~int8 | ~int |
-		~uint8 | ~uint64 |
-		~float64
+	~uint8 | ~uint64 |
+	~float64
 }
 
 type StateInterface interface {
@@ -98,19 +97,25 @@ func (statesData statesData) sort() {
 func (statesData statesData) hashStates() uint64 {
 	hash := fnv.New64()
 
+	buf := make([]byte, binary.MaxVarintLen64)
 	for _, data := range statesData {
-		hash.Write([]byte(strconv.Itoa(int(data.GetKey()))))
+		n := binary.PutVarint(buf, int64(data.GetKey()))
+		hash.Write(buf[:n])
 		hash.Write([]byte(":"))
 
 		switch v := data.GetValue().(type) {
 		case int8:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutVarint(buf, int64(v))
+			hash.Write(buf[:n])
 		case int:
-			hash.Write([]byte(strconv.Itoa(v)))
+			n = binary.PutVarint(buf, int64(v))
+			hash.Write(buf[:n])
 		case uint8:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutUvarint(buf, uint64(v))
+			hash.Write(buf[:n])
 		case uint64:
-			hash.Write([]byte(fmt.Sprintf("%v", v)))
+			n = binary.PutUvarint(buf, v)
+			hash.Write(buf[:n])
 		case float64:
 			hash.Write([]byte(strconv.FormatFloat(v, 'f', -1, 64)))
 		case string:
@@ -176,27 +181,27 @@ func (condition *Condition[T]) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[T]); ok {
 		switch condition.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_LOWER_OR_EQUAL:
+		case LOWER_OR_EQUAL:
 			if state.Value <= condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_LOWER:
+		case LOWER:
 			if state.Value < condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_UPPER_OR_EQUAL:
+		case UPPER_OR_EQUAL:
 			if state.Value >= condition.Value {
 				return true
 			}
-		case STATE_OPERATOR_UPPER:
+		case UPPER:
 			if state.Value > condition.Value {
 				return true
 			}
@@ -224,11 +229,11 @@ func (conditionBool *ConditionBool) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[bool]); ok {
 		switch conditionBool.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == conditionBool.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != conditionBool.Value {
 				return true
 			}
@@ -258,11 +263,11 @@ func (conditionString *ConditionString) Check(states states) bool {
 	s := states.data[k]
 	if state, ok := s.(State[string]); ok {
 		switch conditionString.Operator {
-		case STATE_OPERATOR_EQUAL:
+		case EQUAL:
 			if state.Value == conditionString.Value {
 				return true
 			}
-		case STATE_OPERATOR_NOT_EQUAL:
+		case NOT_EQUAL:
 			if state.Value != conditionString.Value {
 				return true
 			}
