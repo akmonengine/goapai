@@ -18,14 +18,14 @@ type node struct {
 
 var nodesPool = sync.Pool{
 	New: func() any {
-		return make([]node, 0, 32)
+		return make([]*node, 0, 32)
 	},
 }
 
 func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
-	openNodes := nodesPool.Get().([]node)
-	closedNodes := nodesPool.Get().([]node)
+	openNodes := nodesPool.Get().([]*node)
+	closedNodes := nodesPool.Get().([]*node)
 
 	defer func() {
 		nodesPool.Put(openNodes[:0])
@@ -34,7 +34,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 
 	data := slices.Clone(from.data)
 	data.sort()
-	openNodes = append(openNodes, node{
+	openNodes = append(openNodes, &node{
 		Action: &Action{},
 		states: states{
 			Agent: from.Agent,
@@ -58,7 +58,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 
 		// Simulate world state, and check if we are at current state
 		if countMissingGoal(goal, parentNode.states) == 0 {
-			return buildPlanFromNode(&parentNode)
+			return buildPlanFromNode(parentNode)
 		}
 
 		for _, action := range availableActions {
@@ -80,7 +80,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
 					node.states = simulatedStates
-					node.parentNode = &parentNode
+					node.parentNode = parentNode
 					node.cost = parentNode.cost + action.cost
 					node.totalCost = parentNode.cost + action.cost + node.heuristic
 					node.depth = parentNode.depth + 1
@@ -92,7 +92,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
 					node.states = simulatedStates
-					node.parentNode = &parentNode
+					node.parentNode = parentNode
 					node.cost = parentNode.cost + action.cost
 					node.totalCost = parentNode.cost + action.cost + node.heuristic
 					node.depth = parentNode.depth + 1
@@ -102,10 +102,10 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				}
 			} else {
 				heuristic := computeHeuristic(from, goal, simulatedStates)
-				openNodes = append(openNodes, node{
+				openNodes = append(openNodes, &node{
 					Action:     action,
 					states:     simulatedStates,
-					parentNode: &parentNode,
+					parentNode: parentNode,
 					cost:       parentNode.cost + action.cost,
 					totalCost:  parentNode.cost + action.cost + heuristic,
 					heuristic:  heuristic,
@@ -135,7 +135,7 @@ func getImpactingActions(from states, actions Actions) Actions {
 	return availableActions
 }
 
-func getLessCostlyNodeKey(openNodes []node) int {
+func getLessCostlyNodeKey(openNodes []*node) int {
 	lowestKey := -1
 
 	for key, node := range openNodes {
@@ -147,7 +147,7 @@ func getLessCostlyNodeKey(openNodes []node) int {
 	return lowestKey
 }
 
-func fetchNode(nodes []node, states states) (int, bool) {
+func fetchNode(nodes []*node, states states) (int, bool) {
 	for k, n := range nodes {
 		if n.states.Check(states) {
 			return k, true
@@ -190,12 +190,12 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 	}, true
 }
 
-func allowedRepetition(action *Action, parentNode node) bool {
+func allowedRepetition(action *Action, parentNode *node) bool {
 	if action.repeatable {
 		return true
 	}
 
-	node := &parentNode
+	node := parentNode
 	for node != nil {
 		if node.Action.name == action.name {
 			return false
