@@ -170,6 +170,10 @@ type EffectString struct {
 	Operator arithmetic
 }
 
+func (effectString EffectString) GetKey() StateKey {
+	return effectString.Key
+}
+
 func (effectString EffectString) check(states states) bool {
 	k := states.data.GetIndex(effectString.Key)
 	if k < 0 {
