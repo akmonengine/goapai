@@ -45,6 +45,7 @@ func (action *Action) GetEffects() Effects {
 }
 
 type EffectInterface interface {
+	GetKey() StateKey
 	check(states states) bool
 	apply(data statesData) error
 }
@@ -53,6 +54,10 @@ type Effect[T Numeric] struct {
 	Key      StateKey
 	Operator arithmetic
 	Value    T
+}
+
+func (effect Effect[T]) GetKey() StateKey {
+	return effect.Key
 }
 
 func (effect Effect[T]) check(states states) bool {
@@ -113,6 +118,10 @@ type EffectBool struct {
 	Key      StateKey
 	Value    bool
 	Operator arithmetic
+}
+
+func (effectBool EffectBool) GetKey() StateKey {
+	return effectBool.Key
 }
 
 func (effectBool EffectBool) check(states states) bool {

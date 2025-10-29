@@ -4,8 +4,8 @@ import "testing"
 
 func TestState_Operations(t *testing.T) {
 	tests := []struct {
-		name      string
-		testFunc  func(*testing.T)
+		name     string
+		testFunc func(*testing.T)
 	}{
 		{
 			name: "GetKey",
@@ -103,12 +103,10 @@ func TestStates_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			agent1 := CreateAgent(Goals{}, Actions{})
 			tt.setup1(&agent1)
-			agent1.states.data.sort()
 			agent1.states.hash = agent1.states.data.hashStates()
 
 			agent2 := CreateAgent(Goals{}, Actions{})
 			tt.setup2(&agent2)
-			agent2.states.data.sort()
 			agent2.states.hash = agent2.states.data.hashStates()
 
 			if got := agent1.states.Check(agent2.states); got != tt.wantMatch {
@@ -152,25 +150,6 @@ func TestStatesData_Operations(t *testing.T) {
 			},
 		},
 		{
-			name: "sort",
-			testFunc: func(t *testing.T) {
-				data := statesData{
-					State[int]{Key: 3, Value: 300},
-					State[int]{Key: 1, Value: 100},
-					State[int]{Key: 2, Value: 200},
-				}
-
-				data.sort()
-
-				keys := []StateKey{1, 2, 3}
-				for i, expected := range keys {
-					if data[i].GetKey() != expected {
-						t.Errorf("Expected key %d at position %d, got %d", expected, i, data[i].GetKey())
-					}
-				}
-			},
-		},
-		{
 			name: "hashStates same data",
 			testFunc: func(t *testing.T) {
 				data1 := statesData{
@@ -179,6 +158,28 @@ func TestStatesData_Operations(t *testing.T) {
 				}
 
 				data2 := statesData{
+					State[int]{Key: 1, Value: 100},
+					State[int]{Key: 2, Value: 200},
+				}
+
+				hash1 := data1.hashStates()
+				hash2 := data2.hashStates()
+
+				if hash1 != hash2 {
+					t.Error("Expected identical data to produce same hash")
+				}
+			},
+		},
+		{
+			name: "hashStates same data, different keys",
+			testFunc: func(t *testing.T) {
+				data1 := statesData{
+					State[int]{Key: 1, Value: 100},
+					State[int]{Key: 2, Value: 200},
+					State[int]{Key: 3, Value: 300},
+				}
+				data2 := statesData{
+					State[int]{Key: 3, Value: 300},
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 				}
@@ -434,5 +435,216 @@ func TestSensors_GetSensor(t *testing.T) {
 	value := sensors.GetSensor("test")
 	if value.(int) != 42 {
 		t.Errorf("Expected 42, got %v", value)
+	}
+}
+
+func TestState_Hash(t *testing.T) {
+	tests := []struct {
+		name     string
+		state1   StateInterface
+		state2   StateInterface
+		wantSame bool
+	}{
+		{
+			name:     "same int states",
+			state1:   State[int]{Key: 1, Value: 100},
+			state2:   State[int]{Key: 1, Value: 100},
+			wantSame: true,
+		},
+		{
+			name:     "different int values",
+			state1:   State[int]{Key: 1, Value: 100},
+			state2:   State[int]{Key: 1, Value: 200},
+			wantSame: false,
+		},
+		{
+			name:     "different keys",
+			state1:   State[int]{Key: 1, Value: 100},
+			state2:   State[int]{Key: 2, Value: 100},
+			wantSame: false,
+		},
+		{
+			name:     "same bool states",
+			state1:   State[bool]{Key: 1, Value: true},
+			state2:   State[bool]{Key: 1, Value: true},
+			wantSame: true,
+		},
+		{
+			name:     "different bool values",
+			state1:   State[bool]{Key: 1, Value: true},
+			state2:   State[bool]{Key: 1, Value: false},
+			wantSame: false,
+		},
+		{
+			name:     "same string states",
+			state1:   State[string]{Key: 1, Value: "test"},
+			state2:   State[string]{Key: 1, Value: "test"},
+			wantSame: true,
+		},
+		{
+			name:     "different string values",
+			state1:   State[string]{Key: 1, Value: "test"},
+			state2:   State[string]{Key: 1, Value: "other"},
+			wantSame: false,
+		},
+		{
+			name:     "same float64 states",
+			state1:   State[float64]{Key: 1, Value: 3.14},
+			state2:   State[float64]{Key: 1, Value: 3.14},
+			wantSame: true,
+		},
+		{
+			name:     "different float64 values",
+			state1:   State[float64]{Key: 1, Value: 3.14},
+			state2:   State[float64]{Key: 1, Value: 2.71},
+			wantSame: false,
+		},
+		{
+			name:     "same uint64 states",
+			state1:   State[uint64]{Key: 1, Value: 12345},
+			state2:   State[uint64]{Key: 1, Value: 12345},
+			wantSame: true,
+		},
+		{
+			name:     "different uint64 values",
+			state1:   State[uint64]{Key: 1, Value: 12345},
+			state2:   State[uint64]{Key: 1, Value: 54321},
+			wantSame: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash1 := tt.state1.Hash()
+			hash2 := tt.state2.Hash()
+
+			if tt.wantSame && hash1 != hash2 {
+				t.Errorf("Expected same hash, got %d and %d", hash1, hash2)
+			}
+			if !tt.wantSame && hash1 == hash2 {
+				t.Errorf("Expected different hashes, both got %d", hash1)
+			}
+		})
+	}
+}
+
+func TestUpdateHashIncremental(t *testing.T) {
+	tests := []struct {
+		name        string
+		currentHash uint64
+		oldState    StateInterface
+		newState    StateInterface
+		verify      func(*testing.T, uint64)
+	}{
+		{
+			name:        "add new state",
+			currentHash: 0,
+			oldState:    nil,
+			newState:    State[int]{Key: 1, Value: 100},
+			verify: func(t *testing.T, result uint64) {
+				expected := State[int]{Key: 1, Value: 100}.Hash()
+				if result != expected {
+					t.Errorf("Expected hash %d, got %d", expected, result)
+				}
+			},
+		},
+		{
+			name:        "remove state",
+			currentHash: State[int]{Key: 1, Value: 100}.Hash(),
+			oldState:    State[int]{Key: 1, Value: 100},
+			newState:    nil,
+			verify: func(t *testing.T, result uint64) {
+				if result != 0 {
+					t.Errorf("Expected hash 0, got %d", result)
+				}
+			},
+		},
+		{
+			name:        "replace state",
+			currentHash: State[int]{Key: 1, Value: 100}.Hash(),
+			oldState:    State[int]{Key: 1, Value: 100},
+			newState:    State[int]{Key: 1, Value: 200},
+			verify: func(t *testing.T, result uint64) {
+				expected := State[int]{Key: 1, Value: 200}.Hash()
+				if result != expected {
+					t.Errorf("Expected hash %d, got %d", expected, result)
+				}
+			},
+		},
+		{
+			name: "XOR property - multiple states",
+			currentHash: func() uint64 {
+				var h uint64
+				h ^= State[int]{Key: 1, Value: 100}.Hash()
+				h ^= State[int]{Key: 2, Value: 200}.Hash()
+				return h
+			}(),
+			oldState: State[int]{Key: 1, Value: 100},
+			newState: State[int]{Key: 1, Value: 150},
+			verify: func(t *testing.T, result uint64) {
+				expected := State[int]{Key: 1, Value: 150}.Hash() ^ State[int]{Key: 2, Value: 200}.Hash()
+				if result != expected {
+					t.Errorf("Expected hash %d, got %d", expected, result)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := updateHashIncremental(tt.currentHash, tt.oldState, tt.newState)
+			tt.verify(t, result)
+		})
+	}
+}
+
+func TestStatesData_HashStates_XORProperty(t *testing.T) {
+	// Test that hash order doesn't matter (XOR is commutative)
+	data1 := statesData{
+		State[int]{Key: 1, Value: 100},
+		State[int]{Key: 2, Value: 200},
+		State[bool]{Key: 3, Value: true},
+	}
+
+	data2 := statesData{
+		State[bool]{Key: 3, Value: true},
+		State[int]{Key: 1, Value: 100},
+		State[int]{Key: 2, Value: 200},
+	}
+
+	hash1 := data1.hashStates()
+	hash2 := data2.hashStates()
+
+	if hash1 != hash2 {
+		t.Error("Expected XOR hash to be order-independent")
+	}
+}
+
+func TestIncrementalHashConsistency(t *testing.T) {
+	// Verify that incremental hash matches full recalculation
+	agent := CreateAgent(Goals{}, Actions{})
+	SetState[int](&agent, 1, 100)
+	SetState[int](&agent, 2, 200)
+	SetState[bool](&agent, 3, true)
+	agent.states.hash = agent.states.data.hashStates()
+
+	initialHash := agent.states.hash
+
+	// Modify a state and calculate hash incrementally
+	oldState := agent.states.data[0]
+	newState := State[int]{Key: 1, Value: 150}
+
+	incrementalHash := updateHashIncremental(agent.states.hash, oldState, newState)
+
+	// Modify the same state and calculate hash from scratch
+	agent.states.data[0] = newState
+	fullHash := agent.states.data.hashStates()
+
+	if incrementalHash != fullHash {
+		t.Errorf("Incremental hash (%d) doesn't match full recalculation (%d)", incrementalHash, fullHash)
+	}
+
+	if incrementalHash == initialHash {
+		t.Error("Hash should change after state modification")
 	}
 }

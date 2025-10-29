@@ -79,12 +79,10 @@ func TestGetLessCostlyNodeKey_Empty(t *testing.T) {
 func TestFetchNode_Found(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.data.sort()
 	agent1.states.hash = agent1.states.data.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 100)
-	agent2.states.data.sort()
 	agent2.states.hash = agent2.states.data.hashStates()
 
 	nodes := []*node{
@@ -104,12 +102,10 @@ func TestFetchNode_Found(t *testing.T) {
 func TestFetchNode_NotFound(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.data.sort()
 	agent1.states.hash = agent1.states.data.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 200)
-	agent2.states.data.sort()
 	agent2.states.hash = agent2.states.data.hashStates()
 
 	nodes := []*node{

@@ -33,7 +33,6 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 	}()
 
 	data := slices.Clone(from.data)
-	data.sort()
 	openNodes = append(openNodes, &node{
 		Action: &Action{},
 		states: states{
@@ -182,11 +181,28 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 		return states{}, false
 	}
 
-	data.sort()
+	// Calculate hash incrementally by tracking changes
+	newHash := nodeStates.hash
+
+	// For each effect, we need to XOR out the old state and XOR in the new state
+	for _, effect := range action.effects {
+		// Find old state if it exists
+		oldIndex := nodeStates.data.GetIndex(effect.GetKey())
+		if oldIndex >= 0 {
+			newHash ^= nodeStates.data[oldIndex].Hash() // Remove old
+		}
+
+		// Find new state in modified data
+		newIndex := data.GetIndex(effect.GetKey())
+		if newIndex >= 0 {
+			newHash ^= data[newIndex].Hash() // Add new
+		}
+	}
+
 	return states{
 		Agent: nodeStates.Agent,
 		data:  data,
-		hash:  data.hashStates(),
+		hash:  newHash,
 	}, true
 }
 

@@ -3,8 +3,7 @@ package goapai
 import (
 	"encoding/binary"
 	"hash/fnv"
-	"slices"
-	"strconv"
+	"math"
 )
 
 type operator uint8
@@ -20,14 +19,15 @@ const (
 
 type Numeric interface {
 	~int8 | ~int |
-	~uint8 | ~uint64 |
-	~float64
+		~uint8 | ~uint64 |
+		~float64
 }
 
 type StateInterface interface {
 	Check(states states, key StateKey) bool
 	GetKey() StateKey
 	GetValue() any
+	Hash() uint64
 }
 type State[T Numeric | bool | string] struct {
 	Key   StateKey
@@ -67,6 +67,43 @@ func (state State[T]) GetValue() any {
 	return state.Value
 }
 
+// Hash returns a unique hash for this state using FNV-64a
+func (state State[T]) Hash() uint64 {
+	h := fnv.New64a()
+
+	// Write the key
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, uint16(state.Key))
+	h.Write(buf)
+
+	// Write the value based on type
+	buf = make([]byte, 8)
+	switch v := any(state.Value).(type) {
+	case int8:
+		binary.LittleEndian.PutUint64(buf, uint64(v))
+	case int:
+		binary.LittleEndian.PutUint64(buf, uint64(v))
+	case uint8:
+		binary.LittleEndian.PutUint64(buf, uint64(v))
+	case uint64:
+		binary.LittleEndian.PutUint64(buf, v)
+	case float64:
+		binary.LittleEndian.PutUint64(buf, math.Float64bits(v))
+	case bool:
+		if v {
+			binary.LittleEndian.PutUint64(buf, 1)
+		} else {
+			binary.LittleEndian.PutUint64(buf, 0)
+		}
+	case string:
+		h.Write([]byte(v))
+		return h.Sum64()
+	}
+	h.Write(buf)
+
+	return h.Sum64()
+}
+
 // Check compares states and states2 by their hash.
 func (states states) Check(states2 states) bool {
 	return states.hash == states2.hash
@@ -82,53 +119,26 @@ func (statesData statesData) GetIndex(stateKey StateKey) int {
 	return -1
 }
 
-func (statesData statesData) sort() {
-	slices.SortFunc(statesData, func(a, b StateInterface) int {
-		if a.GetKey() > b.GetKey() {
-			return 1
-		} else if a.GetKey() < b.GetKey() {
-			return -1
-		}
-
-		return 0
-	})
+// hashStates computes the initial hash using XOR of individual state hashes
+// This is O(n) but only called once when creating initial state
+func (statesData statesData) hashStates() uint64 {
+	var hash uint64 = 0
+	for _, state := range statesData {
+		hash ^= state.Hash() // XOR for incremental updates
+	}
+	return hash
 }
 
-func (statesData statesData) hashStates() uint64 {
-	hash := fnv.New64()
-
-	buf := make([]byte, binary.MaxVarintLen64)
-	for _, data := range statesData {
-		n := binary.PutVarint(buf, int64(data.GetKey()))
-		hash.Write(buf[:n])
-		hash.Write([]byte(":"))
-
-		switch v := data.GetValue().(type) {
-		case int8:
-			n = binary.PutVarint(buf, int64(v))
-			hash.Write(buf[:n])
-		case int:
-			n = binary.PutVarint(buf, int64(v))
-			hash.Write(buf[:n])
-		case uint8:
-			n = binary.PutUvarint(buf, uint64(v))
-			hash.Write(buf[:n])
-		case uint64:
-			n = binary.PutUvarint(buf, v)
-			hash.Write(buf[:n])
-		case float64:
-			hash.Write([]byte(strconv.FormatFloat(v, 'f', -1, 64)))
-		case string:
-			hash.Write([]byte(v))
-		case []byte:
-			hash.Write(v)
-		default:
-			binary.Write(hash, binary.LittleEndian, data.GetValue())
-		}
-		hash.Write([]byte(";"))
+// updateHashIncremental updates a hash by removing old state and adding new state
+// This is O(1) - the key optimization
+func updateHashIncremental(currentHash uint64, oldState, newState StateInterface) uint64 {
+	if oldState != nil {
+		currentHash ^= oldState.Hash() // Remove old
 	}
-
-	return hash.Sum64()
+	if newState != nil {
+		currentHash ^= newState.Hash() // Add new
+	}
+	return currentHash
 }
 
 type Sensor any
