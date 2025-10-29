@@ -32,13 +32,13 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 		nodesPool.Put(closedNodes[:0])
 	}()
 
-	data := slices.Clone(from.data)
+	data := slices.Clone(from.states)
 	openNodes = append(openNodes, &node{
 		Action: &Action{},
 		world: world{
-			Agent: from.Agent,
-			data:  data,
-			hash:  data.hashStates(),
+			Agent:  from.Agent,
+			states: data,
+			hash:   data.hashStates(),
 		},
 		parentNode: nil,
 		cost:       0,
@@ -187,12 +187,12 @@ func simulateActionState(action *Action, w world) (world, bool) {
 	// For each effect, we need to XOR out the old state and XOR in the new state
 	for _, effect := range action.effects {
 		// Find old state if it exists
-		oldIndex := w.data.GetIndex(effect.GetKey())
+		oldIndex := w.states.GetIndex(effect.GetKey())
 		if oldIndex >= 0 {
-			newHash ^= w.data[oldIndex].Hash() // Remove old
+			newHash ^= w.states[oldIndex].Hash() // Remove old
 		}
 
-		// Find new state in modified data
+		// Find new state in modified states
 		newIndex := data.GetIndex(effect.GetKey())
 		if newIndex >= 0 {
 			newHash ^= data[newIndex].Hash() // Add new
@@ -200,9 +200,9 @@ func simulateActionState(action *Action, w world) (world, bool) {
 	}
 
 	return world{
-		Agent: w.Agent,
-		data:  data,
-		hash:  newHash,
+		Agent:  w.Agent,
+		states: data,
+		hash:   newHash,
 	}, true
 }
 

@@ -48,10 +48,10 @@ func TestSetState(t *testing.T) {
 				SetState[int](a, 1, 42)
 			},
 			checkFunc: func(t *testing.T, a Agent) {
-				if len(a.states.data) != 1 {
-					t.Errorf("Expected 1 state, got %d", len(a.states.data))
+				if len(a.states.states) != 1 {
+					t.Errorf("Expected 1 state, got %d", len(a.states.states))
 				}
-				state := a.states.data[0].(State[int])
+				state := a.states.states[0].(State[int])
 				if state.Key != 1 || state.Value != 42 {
 					t.Errorf("Expected key=1, value=42, got key=%d, value=%d", state.Key, state.Value)
 				}
@@ -63,10 +63,10 @@ func TestSetState(t *testing.T) {
 				SetState[bool](a, 2, true)
 			},
 			checkFunc: func(t *testing.T, a Agent) {
-				if len(a.states.data) != 1 {
-					t.Errorf("Expected 1 state, got %d", len(a.states.data))
+				if len(a.states.states) != 1 {
+					t.Errorf("Expected 1 state, got %d", len(a.states.states))
 				}
-				state := a.states.data[0].(State[bool])
+				state := a.states.states[0].(State[bool])
 				if state.Key != 2 || state.Value != true {
 					t.Errorf("Expected key=2, value=true, got key=%d, value=%v", state.Key, state.Value)
 				}
@@ -78,10 +78,10 @@ func TestSetState(t *testing.T) {
 				SetState[string](a, 3, "test")
 			},
 			checkFunc: func(t *testing.T, a Agent) {
-				if len(a.states.data) != 1 {
-					t.Errorf("Expected 1 state, got %d", len(a.states.data))
+				if len(a.states.states) != 1 {
+					t.Errorf("Expected 1 state, got %d", len(a.states.states))
 				}
-				state := a.states.data[0].(State[string])
+				state := a.states.states[0].(State[string])
 				if state.Key != 3 || state.Value != "test" {
 					t.Errorf("Expected key=3, value='test', got key=%d, value='%s'", state.Key, state.Value)
 				}
@@ -95,8 +95,8 @@ func TestSetState(t *testing.T) {
 				SetState[string](a, 3, "hello")
 			},
 			checkFunc: func(t *testing.T, a Agent) {
-				if len(a.states.data) != 3 {
-					t.Errorf("Expected 3 world, got %d", len(a.states.data))
+				if len(a.states.states) != 3 {
+					t.Errorf("Expected 3 world, got %d", len(a.states.states))
 				}
 			},
 		},

@@ -103,11 +103,11 @@ func TestStates_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			agent1 := CreateAgent(Goals{}, Actions{})
 			tt.setup1(&agent1)
-			agent1.states.hash = agent1.states.data.hashStates()
+			agent1.states.hash = agent1.states.states.hashStates()
 
 			agent2 := CreateAgent(Goals{}, Actions{})
 			tt.setup2(&agent2)
-			agent2.states.hash = agent2.states.data.hashStates()
+			agent2.states.hash = agent2.states.states.hashStates()
 
 			if got := agent1.states.Check(agent2.states); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v", got, tt.wantMatch)
@@ -124,7 +124,7 @@ func TestStatesData_Operations(t *testing.T) {
 		{
 			name: "GetIndex found",
 			testFunc: func(t *testing.T) {
-				data := statesData{
+				data := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 					State[bool]{Key: 3, Value: true},
@@ -139,7 +139,7 @@ func TestStatesData_Operations(t *testing.T) {
 		{
 			name: "GetIndex not found",
 			testFunc: func(t *testing.T) {
-				data := statesData{
+				data := states{
 					State[int]{Key: 1, Value: 100},
 				}
 
@@ -150,14 +150,14 @@ func TestStatesData_Operations(t *testing.T) {
 			},
 		},
 		{
-			name: "hashStates same data",
+			name: "hashStates same states",
 			testFunc: func(t *testing.T) {
-				data1 := statesData{
+				data1 := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 				}
 
-				data2 := statesData{
+				data2 := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 				}
@@ -166,19 +166,19 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 != hash2 {
-					t.Error("Expected identical data to produce same hash")
+					t.Error("Expected identical states to produce same hash")
 				}
 			},
 		},
 		{
-			name: "hashStates same data, different keys",
+			name: "hashStates same states, different keys",
 			testFunc: func(t *testing.T) {
-				data1 := statesData{
+				data1 := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 					State[int]{Key: 3, Value: 300},
 				}
-				data2 := statesData{
+				data2 := states{
 					State[int]{Key: 3, Value: 300},
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
@@ -188,19 +188,19 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 != hash2 {
-					t.Error("Expected identical data to produce same hash")
+					t.Error("Expected identical states to produce same hash")
 				}
 			},
 		},
 		{
-			name: "hashStates different data",
+			name: "hashStates different states",
 			testFunc: func(t *testing.T) {
-				data1 := statesData{
+				data1 := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 200},
 				}
 
-				data2 := statesData{
+				data2 := states{
 					State[int]{Key: 1, Value: 100},
 					State[int]{Key: 2, Value: 999},
 				}
@@ -209,7 +209,7 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 == hash2 {
-					t.Error("Expected different data to produce different hash")
+					t.Error("Expected different states to produce different hash")
 				}
 			},
 		},
@@ -600,13 +600,13 @@ func TestUpdateHashIncremental(t *testing.T) {
 
 func TestStatesData_HashStates_XORProperty(t *testing.T) {
 	// Test that hash order doesn't matter (XOR is commutative)
-	data1 := statesData{
+	data1 := states{
 		State[int]{Key: 1, Value: 100},
 		State[int]{Key: 2, Value: 200},
 		State[bool]{Key: 3, Value: true},
 	}
 
-	data2 := statesData{
+	data2 := states{
 		State[bool]{Key: 3, Value: true},
 		State[int]{Key: 1, Value: 100},
 		State[int]{Key: 2, Value: 200},
@@ -626,19 +626,19 @@ func TestIncrementalHashConsistency(t *testing.T) {
 	SetState[int](&agent, 1, 100)
 	SetState[int](&agent, 2, 200)
 	SetState[bool](&agent, 3, true)
-	agent.states.hash = agent.states.data.hashStates()
+	agent.states.hash = agent.states.states.hashStates()
 
 	initialHash := agent.states.hash
 
 	// Modify a state and calculate hash incrementally
-	oldState := agent.states.data[0]
+	oldState := agent.states.states[0]
 	newState := State[int]{Key: 1, Value: 150}
 
 	incrementalHash := updateHashIncremental(agent.states.hash, oldState, newState)
 
 	// Modify the same state and calculate hash from scratch
-	agent.states.data[0] = newState
-	fullHash := agent.states.data.hashStates()
+	agent.states.states[0] = newState
+	fullHash := agent.states.states.hashStates()
 
 	if incrementalHash != fullHash {
 		t.Errorf("Incremental hash (%d) doesn't match full recalculation (%d)", incrementalHash, fullHash)

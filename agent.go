@@ -22,8 +22,8 @@ func CreateAgent(goals Goals, actions Actions) Agent {
 	}
 
 	states := world{
-		Agent: &agent,
-		data:  statesData{},
+		Agent:  &agent,
+		states: states{},
 	}
 	agent.states = states
 
@@ -31,7 +31,7 @@ func CreateAgent(goals Goals, actions Actions) Agent {
 }
 
 func SetState[T Numeric | bool | string](agent *Agent, key StateKey, value T) {
-	agent.states.data = append(agent.states.data, State[T]{
+	agent.states.states = append(agent.states.states, State[T]{
 		Key:   key,
 		Value: value,
 	})

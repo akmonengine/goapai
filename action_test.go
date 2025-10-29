@@ -93,7 +93,7 @@ func TestEffect_Check_NonSetOperator(t *testing.T) {
 }
 
 func TestEffect_Apply_Set(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[int]{Key: 1, Value: 100},
 	}
 
@@ -110,7 +110,7 @@ func TestEffect_Apply_Set(t *testing.T) {
 }
 
 func TestEffect_Apply_Add(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[int]{Key: 1, Value: 100},
 	}
 
@@ -127,7 +127,7 @@ func TestEffect_Apply_Add(t *testing.T) {
 }
 
 func TestEffect_Apply_Subtract(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[int]{Key: 1, Value: 100},
 	}
 
@@ -144,7 +144,7 @@ func TestEffect_Apply_Subtract(t *testing.T) {
 }
 
 func TestEffect_Apply_Multiply(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[int]{Key: 1, Value: 10},
 	}
 
@@ -161,7 +161,7 @@ func TestEffect_Apply_Multiply(t *testing.T) {
 }
 
 func TestEffect_Apply_Divide(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[int]{Key: 1, Value: 100},
 	}
 
@@ -178,7 +178,7 @@ func TestEffect_Apply_Divide(t *testing.T) {
 }
 
 func TestEffect_Apply_NewKey(t *testing.T) {
-	data := statesData{}
+	data := states{}
 
 	effect := Effect[int]{Key: 1, Value: 42, Operator: SET}
 	err := effect.apply(data)
@@ -213,7 +213,7 @@ func TestEffectBool_Check_NoMatch(t *testing.T) {
 }
 
 func TestEffectBool_Apply_Set(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[bool]{Key: 1, Value: false},
 	}
 
@@ -230,7 +230,7 @@ func TestEffectBool_Apply_Set(t *testing.T) {
 }
 
 func TestEffectBool_Apply_InvalidOperator(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[bool]{Key: 1, Value: true},
 	}
 
@@ -243,7 +243,7 @@ func TestEffectBool_Apply_InvalidOperator(t *testing.T) {
 }
 
 func TestEffectBool_Apply_NewKey(t *testing.T) {
-	data := statesData{}
+	data := states{}
 
 	effect := EffectBool{Key: 1, Value: true, Operator: SET}
 	err := effect.apply(data)
@@ -278,7 +278,7 @@ func TestEffectString_Check_NoMatch(t *testing.T) {
 }
 
 func TestEffectString_Apply_Set(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[string]{Key: 1, Value: "old"},
 	}
 
@@ -295,7 +295,7 @@ func TestEffectString_Apply_Set(t *testing.T) {
 }
 
 func TestEffectString_Apply_Add_Concatenate(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[string]{Key: 1, Value: "hello"},
 	}
 
@@ -312,7 +312,7 @@ func TestEffectString_Apply_Add_Concatenate(t *testing.T) {
 }
 
 func TestEffectString_Apply_InvalidOperator(t *testing.T) {
-	data := statesData{
+	data := states{
 		State[string]{Key: 1, Value: "test"},
 	}
 
@@ -325,7 +325,7 @@ func TestEffectString_Apply_InvalidOperator(t *testing.T) {
 }
 
 func TestEffectString_Apply_NewKey(t *testing.T) {
-	data := statesData{}
+	data := states{}
 
 	effect := EffectString{Key: 1, Value: "new", Operator: SET}
 	err := effect.apply(data)

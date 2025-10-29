@@ -79,11 +79,11 @@ func TestGetLessCostlyNodeKey_Empty(t *testing.T) {
 func TestFetchNode_Found(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.hash = agent1.states.data.hashStates()
+	agent1.states.hash = agent1.states.states.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 100)
-	agent2.states.hash = agent2.states.data.hashStates()
+	agent2.states.hash = agent2.states.states.hashStates()
 
 	nodes := []*node{
 		{world: agent1.states},
@@ -102,11 +102,11 @@ func TestFetchNode_Found(t *testing.T) {
 func TestFetchNode_NotFound(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.hash = agent1.states.data.hashStates()
+	agent1.states.hash = agent1.states.states.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 200)
-	agent2.states.hash = agent2.states.data.hashStates()
+	agent2.states.hash = agent2.states.states.hashStates()
 
 	nodes := []*node{
 		{world: agent1.states},
@@ -173,13 +173,13 @@ func TestSimulateActionState(t *testing.T) {
 		t.Error("Expected simulation to succeed")
 	}
 
-	idx := newStates.data.GetIndex(1)
+	idx := newStates.states.GetIndex(1)
 	if idx < 0 {
 		t.Error("Expected to find key 1 in new world")
 	}
 
-	if newStates.data[idx].(State[int]).Value != 150 {
-		t.Errorf("Expected value 150, got %d", newStates.data[idx].(State[int]).Value)
+	if newStates.states[idx].(State[int]).Value != 150 {
+		t.Errorf("Expected value 150, got %d", newStates.states[idx].(State[int]).Value)
 	}
 }
 
@@ -509,7 +509,7 @@ func TestAstar_DataCloning(t *testing.T) {
 	agent := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent, 1, 100)
 
-	originalData := slices.Clone(agent.states.data)
+	originalData := slices.Clone(agent.states.states)
 
 	actions := Actions{}
 	actions.AddAction("modify", 1.0, false, Conditions{}, Effects{
@@ -525,10 +525,10 @@ func TestAstar_DataCloning(t *testing.T) {
 	_ = astar(agent.states, goal, actions, 10)
 
 	// Original state should not be modified
-	if len(agent.states.data) != len(originalData) {
+	if len(agent.states.states) != len(originalData) {
 		t.Error("Original state was modified")
 	}
-	if agent.states.data[0].(State[int]).Value != originalData[0].(State[int]).Value {
+	if agent.states.states[0].(State[int]).Value != originalData[0].(State[int]).Value {
 		t.Error("Original state values were modified")
 	}
 }

@@ -19,8 +19,8 @@ const (
 
 type Numeric interface {
 	~int8 | ~int |
-	~uint8 | ~uint64 |
-	~float64
+		~uint8 | ~uint64 |
+		~float64
 }
 
 type StateInterface interface {
@@ -36,12 +36,12 @@ type State[T Numeric | bool | string] struct {
 
 type StateKey uint16
 
-type statesData []StateInterface
+type states []StateInterface
 
 type world struct {
-	Agent *Agent
-	data  statesData
-	hash  uint64
+	Agent  *Agent
+	states states
+	hash   uint64
 }
 
 func (state State[T]) GetKey() StateKey {
@@ -49,11 +49,11 @@ func (state State[T]) GetKey() StateKey {
 }
 
 func (state State[T]) Check(w world, key StateKey) bool {
-	k := w.data.GetIndex(key)
+	k := w.states.GetIndex(key)
 	if k < 0 {
 		return false
 	}
-	s := w.data[k]
+	s := w.states[k]
 	if agentState, ok := s.(State[T]); ok {
 		if agentState.Value == state.Value {
 			return true
@@ -109,7 +109,7 @@ func (world world) Check(world2 world) bool {
 	return world.hash == world2.hash
 }
 
-func (statesData statesData) GetIndex(stateKey StateKey) int {
+func (statesData states) GetIndex(stateKey StateKey) int {
 	for k, stateData := range statesData {
 		if stateData.GetKey() == stateKey {
 			return k
@@ -121,7 +121,7 @@ func (statesData statesData) GetIndex(stateKey StateKey) int {
 
 // hashStates computes the initial hash using XOR of individual state hashes
 // This is O(n) but only called once when creating initial state
-func (statesData statesData) hashStates() uint64 {
+func (statesData states) hashStates() uint64 {
 	var hash uint64 = 0
 	for _, state := range statesData {
 		hash ^= state.Hash() // XOR for incremental updates
@@ -184,11 +184,11 @@ func (condition *Condition[T]) GetKey() StateKey {
 }
 
 func (condition *Condition[T]) Check(w world) bool {
-	k := w.data.GetIndex(condition.Key)
+	k := w.states.GetIndex(condition.Key)
 	if k < 0 {
 		return false
 	}
-	s := w.data[k]
+	s := w.states[k]
 	if state, ok := s.(State[T]); ok {
 		switch condition.Operator {
 		case EQUAL:
@@ -232,11 +232,11 @@ func (conditionBool *ConditionBool) GetKey() StateKey {
 }
 
 func (conditionBool *ConditionBool) Check(w world) bool {
-	k := w.data.GetIndex(conditionBool.Key)
+	k := w.states.GetIndex(conditionBool.Key)
 	if k < 0 {
 		return false
 	}
-	s := w.data[k]
+	s := w.states[k]
 	if state, ok := s.(State[bool]); ok {
 		switch conditionBool.Operator {
 		case EQUAL:
@@ -266,11 +266,11 @@ func (conditionString *ConditionString) GetKey() StateKey {
 }
 
 func (conditionString *ConditionString) Check(w world) bool {
-	k := w.data.GetIndex(conditionString.Key)
+	k := w.states.GetIndex(conditionString.Key)
 	if k < 0 {
 		return false
 	}
-	s := w.data[k]
+	s := w.states[k]
 	if state, ok := s.(State[string]); ok {
 		switch conditionString.Operator {
 		case EQUAL:

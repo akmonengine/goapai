@@ -47,7 +47,7 @@ func (action *Action) GetEffects() Effects {
 type EffectInterface interface {
 	GetKey() StateKey
 	check(w world) bool
-	apply(data statesData) error
+	apply(data states) error
 }
 
 type Effect[T Numeric] struct {
@@ -66,11 +66,11 @@ func (effect Effect[T]) check(w world) bool {
 		return false
 	}
 
-	k := w.data.GetIndex(effect.Key)
+	k := w.states.GetIndex(effect.Key)
 	if k < 0 {
 		return false
 	}
-	s := w.data[k]
+	s := w.states[k]
 
 	if _, ok := s.(State[T]); !ok {
 		return false
@@ -79,7 +79,7 @@ func (effect Effect[T]) check(w world) bool {
 	return s.(State[T]).Value == effect.Value
 }
 
-func (effect Effect[T]) apply(data statesData) error {
+func (effect Effect[T]) apply(data states) error {
 	k := data.GetIndex(effect.Key)
 	if k < 0 {
 		if slices.Contains([]arithmetic{SET, ADD}, effect.Operator) {
@@ -89,7 +89,7 @@ func (effect Effect[T]) apply(data statesData) error {
 			data = append(data, State[T]{Value: -effect.Value})
 			return nil
 		}
-		return fmt.Errorf("data does not exist")
+		return fmt.Errorf("states does not exist")
 	}
 	if _, ok := data[k].(State[T]); !ok {
 		return fmt.Errorf("type does not match")
@@ -130,20 +130,20 @@ func (effectBool EffectBool) check(w world) bool {
 		return false
 	}
 
-	k := w.data.GetIndex(effectBool.Key)
+	k := w.states.GetIndex(effectBool.Key)
 	if k < 0 {
 		return false
 	}
-	if _, ok := w.data[k].(State[bool]); !ok {
+	if _, ok := w.states[k].(State[bool]); !ok {
 		return false
 	}
 
-	s := w.data[k].(State[bool])
+	s := w.states[k].(State[bool])
 
 	return s.Value == effectBool.Value
 }
 
-func (effectBool EffectBool) apply(data statesData) error {
+func (effectBool EffectBool) apply(data states) error {
 	if effectBool.Operator != SET {
 		return fmt.Errorf("operation %v not allowed on bool type", effectBool.Operator)
 	}
@@ -175,20 +175,20 @@ func (effectString EffectString) GetKey() StateKey {
 }
 
 func (effectString EffectString) check(w world) bool {
-	k := w.data.GetIndex(effectString.Key)
+	k := w.states.GetIndex(effectString.Key)
 	if k < 0 {
 		return false
 	}
-	if _, ok := w.data[k].(State[string]); !ok {
+	if _, ok := w.states[k].(State[string]); !ok {
 		return false
 	}
 
-	s := w.data[k].(State[string])
+	s := w.states[k].(State[string])
 
 	return s.Value == effectString.Value
 }
 
-func (effectString EffectString) apply(data statesData) error {
+func (effectString EffectString) apply(data states) error {
 	if !slices.Contains([]arithmetic{SET, ADD}, effectString.Operator) {
 		return fmt.Errorf("arithmetic operation %v not allowed on string type", effectString.Operator)
 	}
@@ -230,8 +230,8 @@ func (effects Effects) satisfyStates(w world) bool {
 	return true
 }
 
-func (effects Effects) apply(w world) (statesData, error) {
-	data := slices.Clone(w.data)
+func (effects Effects) apply(w world) (states, error) {
+	data := slices.Clone(w.states)
 
 	for _, effect := range effects {
 		err := effect.apply(data)
