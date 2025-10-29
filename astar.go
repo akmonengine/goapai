@@ -7,7 +7,7 @@ import (
 
 type node struct {
 	*Action
-	states states
+	world world
 
 	parentNode *node
 	cost       float32
@@ -22,7 +22,7 @@ var nodesPool = sync.Pool{
 	},
 }
 
-func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan {
+func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
 	openNodes := nodesPool.Get().([]*node)
 	closedNodes := nodesPool.Get().([]*node)
@@ -35,7 +35,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 	data := slices.Clone(from.data)
 	openNodes = append(openNodes, &node{
 		Action: &Action{},
-		states: states{
+		world: world{
 			Agent: from.Agent,
 			data:  data,
 			hash:  data.hashStates(),
@@ -56,7 +56,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 		}
 
 		// Simulate world state, and check if we are at current state
-		if countMissingGoal(goal, parentNode.states) == 0 {
+		if countMissingGoal(goal, parentNode.world) == 0 {
 			return buildPlanFromNode(parentNode)
 		}
 
@@ -65,11 +65,11 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				continue
 			}
 
-			if !action.conditions.Check(parentNode.states) {
+			if !action.conditions.Check(parentNode.world) {
 				continue
 			}
 
-			simulatedStates, ok := simulateActionState(action, parentNode.states)
+			simulatedStates, ok := simulateActionState(action, parentNode.world)
 			if !ok {
 				continue
 			}
@@ -78,7 +78,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				node := openNodes[nodeKey]
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
-					node.states = simulatedStates
+					node.world = simulatedStates
 					node.parentNode = parentNode
 					node.cost = parentNode.cost + action.cost
 					node.totalCost = parentNode.cost + action.cost + node.heuristic
@@ -90,7 +90,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				node := closedNodes[nodeKey]
 				if (parentNode.cost + action.cost) < node.cost {
 					node.Action = action
-					node.states = simulatedStates
+					node.world = simulatedStates
 					node.parentNode = parentNode
 					node.cost = parentNode.cost + action.cost
 					node.totalCost = parentNode.cost + action.cost + node.heuristic
@@ -103,7 +103,7 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 				heuristic := computeHeuristic(from, goal, simulatedStates)
 				openNodes = append(openNodes, &node{
 					Action:     action,
-					states:     simulatedStates,
+					world:      simulatedStates,
 					parentNode: parentNode,
 					cost:       parentNode.cost + action.cost,
 					totalCost:  parentNode.cost + action.cost + heuristic,
@@ -120,9 +120,9 @@ func astar(from states, goal goalInterface, actions Actions, maxDepth int) Plan 
 	return Plan{}
 }
 
-// All the actions similar to initial states are useless:
+// All the actions similar to initial world are useless:
 // we consider they are not going towards the goal and are dead end
-func getImpactingActions(from states, actions Actions) Actions {
+func getImpactingActions(from world, actions Actions) Actions {
 	var availableActions Actions
 
 	for _, action := range actions {
@@ -146,9 +146,9 @@ func getLessCostlyNodeKey(openNodes []*node) int {
 	return lowestKey
 }
 
-func fetchNode(nodes []*node, states states) (int, bool) {
+func fetchNode(nodes []*node, w world) (int, bool) {
 	for k, n := range nodes {
-		if n.states.Check(states) {
+		if n.world.Check(w) {
 			return k, true
 		}
 	}
@@ -169,27 +169,27 @@ func buildPlanFromNode(node *node) Plan {
 	return plan
 }
 
-func simulateActionState(action *Action, nodeStates states) (states, bool) {
+func simulateActionState(action *Action, w world) (world, bool) {
 	/* If action effects implies no changes to current worldState,
 	then avoid generating huge chunks of memory */
-	if action.effects.satisfyStates(nodeStates) {
-		return states{}, false
+	if action.effects.satisfyStates(w) {
+		return world{}, false
 	}
 
-	data, err := action.effects.apply(nodeStates)
+	data, err := action.effects.apply(w)
 	if err != nil {
-		return states{}, false
+		return world{}, false
 	}
 
 	// Calculate hash incrementally by tracking changes
-	newHash := nodeStates.hash
+	newHash := w.hash
 
 	// For each effect, we need to XOR out the old state and XOR in the new state
 	for _, effect := range action.effects {
 		// Find old state if it exists
-		oldIndex := nodeStates.data.GetIndex(effect.GetKey())
+		oldIndex := w.data.GetIndex(effect.GetKey())
 		if oldIndex >= 0 {
-			newHash ^= nodeStates.data[oldIndex].Hash() // Remove old
+			newHash ^= w.data[oldIndex].Hash() // Remove old
 		}
 
 		// Find new state in modified data
@@ -199,8 +199,8 @@ func simulateActionState(action *Action, nodeStates states) (states, bool) {
 		}
 	}
 
-	return states{
-		Agent: nodeStates.Agent,
+	return world{
+		Agent: w.Agent,
 		data:  data,
 		hash:  newHash,
 	}, true
@@ -223,10 +223,10 @@ func allowedRepetition(action *Action, parentNode *node) bool {
 	return true
 }
 
-func countMissingGoal(goal goalInterface, states states) int {
+func countMissingGoal(goal goalInterface, w world) int {
 	count := 0
 	for _, condition := range goal.Conditions {
-		if !condition.Check(states) {
+		if !condition.Check(w) {
 			count++
 		}
 	}
@@ -236,12 +236,12 @@ func countMissingGoal(goal goalInterface, states states) int {
 
 /*
 A very simple (empiristic) model for h using:
-  - how much required states are met
+  - how much required world are met
 
 We try to be conservative and reduce the number of steps
 */
-func computeHeuristic(fromStates states, goal goalInterface, states states) float32 {
-	missingGoalsCount := float32(countMissingGoal(goal, states))
+func computeHeuristic(from world, goal goalInterface, w world) float32 {
+	missingGoalsCount := float32(countMissingGoal(goal, w))
 
 	h := missingGoalsCount
 

@@ -86,8 +86,8 @@ func TestFetchNode_Found(t *testing.T) {
 	agent2.states.hash = agent2.states.data.hashStates()
 
 	nodes := []*node{
-		{states: agent1.states},
-		{states: agent2.states},
+		{world: agent1.states},
+		{world: agent2.states},
 	}
 
 	key, found := fetchNode(nodes, agent1.states)
@@ -109,7 +109,7 @@ func TestFetchNode_NotFound(t *testing.T) {
 	agent2.states.hash = agent2.states.data.hashStates()
 
 	nodes := []*node{
-		{states: agent1.states},
+		{world: agent1.states},
 	}
 
 	_, found := fetchNode(nodes, agent2.states)
@@ -175,7 +175,7 @@ func TestSimulateActionState(t *testing.T) {
 
 	idx := newStates.data.GetIndex(1)
 	if idx < 0 {
-		t.Error("Expected to find key 1 in new states")
+		t.Error("Expected to find key 1 in new world")
 	}
 
 	if newStates.data[idx].(State[int]).Value != 150 {

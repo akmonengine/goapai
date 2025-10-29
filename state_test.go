@@ -77,7 +77,7 @@ func TestStates_Check(t *testing.T) {
 		wantMatch bool
 	}{
 		{
-			name: "matching states",
+			name: "matching world",
 			setup1: func(a *Agent) {
 				SetState[int](a, 1, 100)
 			},
@@ -87,7 +87,7 @@ func TestStates_Check(t *testing.T) {
 			wantMatch: true,
 		},
 		{
-			name: "different states",
+			name: "different world",
 			setup1: func(a *Agent) {
 				SetState[int](a, 1, 100)
 			},
@@ -446,7 +446,7 @@ func TestState_Hash(t *testing.T) {
 		wantSame bool
 	}{
 		{
-			name:     "same int states",
+			name:     "same int world",
 			state1:   State[int]{Key: 1, Value: 100},
 			state2:   State[int]{Key: 1, Value: 100},
 			wantSame: true,
@@ -464,7 +464,7 @@ func TestState_Hash(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name:     "same bool states",
+			name:     "same bool world",
 			state1:   State[bool]{Key: 1, Value: true},
 			state2:   State[bool]{Key: 1, Value: true},
 			wantSame: true,
@@ -476,7 +476,7 @@ func TestState_Hash(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name:     "same string states",
+			name:     "same string world",
 			state1:   State[string]{Key: 1, Value: "test"},
 			state2:   State[string]{Key: 1, Value: "test"},
 			wantSame: true,
@@ -488,7 +488,7 @@ func TestState_Hash(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name:     "same float64 states",
+			name:     "same float64 world",
 			state1:   State[float64]{Key: 1, Value: 3.14},
 			state2:   State[float64]{Key: 1, Value: 3.14},
 			wantSame: true,
@@ -500,7 +500,7 @@ func TestState_Hash(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name:     "same uint64 states",
+			name:     "same uint64 world",
 			state1:   State[uint64]{Key: 1, Value: 12345},
 			state2:   State[uint64]{Key: 1, Value: 12345},
 			wantSame: true,
@@ -572,7 +572,7 @@ func TestUpdateHashIncremental(t *testing.T) {
 			},
 		},
 		{
-			name: "XOR property - multiple states",
+			name: "XOR property - multiple world",
 			currentHash: func() uint64 {
 				var h uint64
 				h ^= State[int]{Key: 1, Value: 100}.Hash()

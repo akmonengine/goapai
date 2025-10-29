@@ -350,7 +350,7 @@ func TestEffects_SatisfyStates_AllMatch(t *testing.T) {
 	}
 
 	if !effects.satisfyStates(agent.states) {
-		t.Error("Expected effects to satisfy states")
+		t.Error("Expected effects to satisfy world")
 	}
 }
 
@@ -365,7 +365,7 @@ func TestEffects_SatisfyStates_OneFails(t *testing.T) {
 	}
 
 	if effects.satisfyStates(agent.states) {
-		t.Error("Expected effects not to satisfy states when one doesn't match")
+		t.Error("Expected effects not to satisfy world when one doesn't match")
 	}
 }
 
@@ -385,7 +385,7 @@ func TestEffects_Apply(t *testing.T) {
 	}
 
 	if len(newData) != 2 {
-		t.Errorf("Expected 2 states, got %d", len(newData))
+		t.Errorf("Expected 2 world, got %d", len(newData))
 	}
 
 	// Check int value

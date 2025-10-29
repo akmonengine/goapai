@@ -19,12 +19,12 @@ const (
 
 type Numeric interface {
 	~int8 | ~int |
-		~uint8 | ~uint64 |
-		~float64
+	~uint8 | ~uint64 |
+	~float64
 }
 
 type StateInterface interface {
-	Check(states states, key StateKey) bool
+	Check(w world, key StateKey) bool
 	GetKey() StateKey
 	GetValue() any
 	Hash() uint64
@@ -38,7 +38,7 @@ type StateKey uint16
 
 type statesData []StateInterface
 
-type states struct {
+type world struct {
 	Agent *Agent
 	data  statesData
 	hash  uint64
@@ -48,12 +48,12 @@ func (state State[T]) GetKey() StateKey {
 	return state.Key
 }
 
-func (state State[T]) Check(states states, key StateKey) bool {
-	k := states.data.GetIndex(key)
+func (state State[T]) Check(w world, key StateKey) bool {
+	k := w.data.GetIndex(key)
 	if k < 0 {
 		return false
 	}
-	s := states.data[k]
+	s := w.data[k]
 	if agentState, ok := s.(State[T]); ok {
 		if agentState.Value == state.Value {
 			return true
@@ -104,9 +104,9 @@ func (state State[T]) Hash() uint64 {
 	return h.Sum64()
 }
 
-// Check compares states and states2 by their hash.
-func (states states) Check(states2 states) bool {
-	return states.hash == states2.hash
+// Check compares world and states2 by their hash.
+func (world world) Check(world2 world) bool {
+	return world.hash == world2.hash
 }
 
 func (statesData statesData) GetIndex(stateKey StateKey) int {
@@ -150,7 +150,7 @@ func (sensors Sensors) GetSensor(name string) Sensor {
 
 type ConditionInterface interface {
 	GetKey() StateKey
-	Check(states states) bool
+	Check(w world) bool
 }
 
 type ConditionFn struct {
@@ -164,9 +164,9 @@ func (conditionFn *ConditionFn) GetKey() StateKey {
 	return conditionFn.Key
 }
 
-func (conditionFn *ConditionFn) Check(states states) bool {
+func (conditionFn *ConditionFn) Check(w world) bool {
 	if !conditionFn.resolved {
-		conditionFn.valid = conditionFn.CheckFn(states.Agent.sensors)
+		conditionFn.valid = conditionFn.CheckFn(w.Agent.sensors)
 		conditionFn.resolved = true
 	}
 
@@ -183,12 +183,12 @@ func (condition *Condition[T]) GetKey() StateKey {
 	return condition.Key
 }
 
-func (condition *Condition[T]) Check(states states) bool {
-	k := states.data.GetIndex(condition.Key)
+func (condition *Condition[T]) Check(w world) bool {
+	k := w.data.GetIndex(condition.Key)
 	if k < 0 {
 		return false
 	}
-	s := states.data[k]
+	s := w.data[k]
 	if state, ok := s.(State[T]); ok {
 		switch condition.Operator {
 		case EQUAL:
@@ -231,12 +231,12 @@ func (conditionBool *ConditionBool) GetKey() StateKey {
 	return conditionBool.Key
 }
 
-func (conditionBool *ConditionBool) Check(states states) bool {
-	k := states.data.GetIndex(conditionBool.Key)
+func (conditionBool *ConditionBool) Check(w world) bool {
+	k := w.data.GetIndex(conditionBool.Key)
 	if k < 0 {
 		return false
 	}
-	s := states.data[k]
+	s := w.data[k]
 	if state, ok := s.(State[bool]); ok {
 		switch conditionBool.Operator {
 		case EQUAL:
@@ -265,12 +265,12 @@ func (conditionString *ConditionString) GetKey() StateKey {
 	return conditionString.Key
 }
 
-func (conditionString *ConditionString) Check(states states) bool {
-	k := states.data.GetIndex(conditionString.Key)
+func (conditionString *ConditionString) Check(w world) bool {
+	k := w.data.GetIndex(conditionString.Key)
 	if k < 0 {
 		return false
 	}
-	s := states.data[k]
+	s := w.data[k]
 	if state, ok := s.(State[string]); ok {
 		switch conditionString.Operator {
 		case EQUAL:
@@ -291,9 +291,9 @@ func (conditionString *ConditionString) Check(states states) bool {
 
 type Conditions []ConditionInterface
 
-func (conditions Conditions) Check(states states) bool {
+func (conditions Conditions) Check(w world) bool {
 	for _, condition := range conditions {
-		if !condition.Check(states) {
+		if !condition.Check(w) {
 			return false
 		}
 	}

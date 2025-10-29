@@ -2,7 +2,7 @@ package goapai
 
 type Agent struct {
 	actions Actions
-	states  states
+	states  world
 	sensors Sensors
 	goals   Goals
 }
@@ -21,7 +21,7 @@ func CreateAgent(goals Goals, actions Actions) Agent {
 		sensors: Sensors{},
 	}
 
-	states := states{
+	states := world{
 		Agent: &agent,
 		data:  statesData{},
 	}

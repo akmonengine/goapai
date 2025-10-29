@@ -46,7 +46,7 @@ func (action *Action) GetEffects() Effects {
 
 type EffectInterface interface {
 	GetKey() StateKey
-	check(states states) bool
+	check(w world) bool
 	apply(data statesData) error
 }
 
@@ -60,17 +60,17 @@ func (effect Effect[T]) GetKey() StateKey {
 	return effect.Key
 }
 
-func (effect Effect[T]) check(states states) bool {
-	// Other operators than '=' mean the effect will have an impact of the states
+func (effect Effect[T]) check(w world) bool {
+	// Other operators than '=' mean the effect will have an impact of the world
 	if effect.Operator != SET {
 		return false
 	}
 
-	k := states.data.GetIndex(effect.Key)
+	k := w.data.GetIndex(effect.Key)
 	if k < 0 {
 		return false
 	}
-	s := states.data[k]
+	s := w.data[k]
 
 	if _, ok := s.(State[T]); !ok {
 		return false
@@ -124,21 +124,21 @@ func (effectBool EffectBool) GetKey() StateKey {
 	return effectBool.Key
 }
 
-func (effectBool EffectBool) check(states states) bool {
+func (effectBool EffectBool) check(w world) bool {
 	// Other operators than '=' is not allowed
 	if effectBool.Operator != SET {
 		return false
 	}
 
-	k := states.data.GetIndex(effectBool.Key)
+	k := w.data.GetIndex(effectBool.Key)
 	if k < 0 {
 		return false
 	}
-	if _, ok := states.data[k].(State[bool]); !ok {
+	if _, ok := w.data[k].(State[bool]); !ok {
 		return false
 	}
 
-	s := states.data[k].(State[bool])
+	s := w.data[k].(State[bool])
 
 	return s.Value == effectBool.Value
 }
@@ -174,16 +174,16 @@ func (effectString EffectString) GetKey() StateKey {
 	return effectString.Key
 }
 
-func (effectString EffectString) check(states states) bool {
-	k := states.data.GetIndex(effectString.Key)
+func (effectString EffectString) check(w world) bool {
+	k := w.data.GetIndex(effectString.Key)
 	if k < 0 {
 		return false
 	}
-	if _, ok := states.data[k].(State[string]); !ok {
+	if _, ok := w.data[k].(State[string]); !ok {
 		return false
 	}
 
-	s := states.data[k].(State[string])
+	s := w.data[k].(State[string])
 
 	return s.Value == effectString.Value
 }
@@ -218,11 +218,11 @@ type EffectFn func(agent *Agent)
 
 type Effects []EffectInterface
 
-// If all the effects already exist in states,
+// If all the effects already exist in world,
 // it is probably not a good path
-func (effects Effects) satisfyStates(states states) bool {
+func (effects Effects) satisfyStates(w world) bool {
 	for _, effect := range effects {
-		if !effect.check(states) {
+		if !effect.check(w) {
 			return false
 		}
 	}
@@ -230,8 +230,8 @@ func (effects Effects) satisfyStates(states states) bool {
 	return true
 }
 
-func (effects Effects) apply(states states) (statesData, error) {
-	data := slices.Clone(states.data)
+func (effects Effects) apply(w world) (statesData, error) {
+	data := slices.Clone(w.data)
 
 	for _, effect := range effects {
 		err := effect.apply(data)

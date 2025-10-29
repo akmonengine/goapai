@@ -32,7 +32,7 @@ func TestCreateAgent(t *testing.T) {
 	}
 
 	if agent.states.Agent == nil {
-		t.Error("Expected states.Agent to be non-nil")
+		t.Error("Expected world.Agent to be non-nil")
 	}
 }
 
@@ -88,7 +88,7 @@ func TestSetState(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple states",
+			name: "multiple world",
 			setupFunc: func(a *Agent) {
 				SetState[int](a, 1, 100)
 				SetState[bool](a, 2, false)
@@ -96,7 +96,7 @@ func TestSetState(t *testing.T) {
 			},
 			checkFunc: func(t *testing.T, a Agent) {
 				if len(a.states.data) != 3 {
-					t.Errorf("Expected 3 states, got %d", len(a.states.data))
+					t.Errorf("Expected 3 world, got %d", len(a.states.data))
 				}
 			},
 		},
