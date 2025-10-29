@@ -3,6 +3,9 @@ package benchmark
 import (
 	"fmt"
 	"goapai"
+	"os"
+	"runtime/pprof"
+	"runtime/trace"
 	"testing"
 )
 
@@ -67,28 +70,31 @@ func BenchmarkGoapAI(b *testing.B) {
 	goapai.SetState[int](&entity.agent, ATTRIBUTE_1, 80)
 	goapai.SetState[int](&entity.agent, ATTRIBUTE_3, 0)
 
-	// Write to the trace file.
-	//f, _ := os.Create("trace.out")
-	//fcpu, _ := os.Create(`cpu.prof`)
-	//fheap, _ := os.Create(`heap.prof`)
-	//
-	//pprof.StartCPUProfile(fcpu)
-	//pprof.WriteHeapProfile(fheap)
-	//trace.Start(f)
+	//Write to the trace file.
+	f, _ := os.Create("trace.out")
+	fcpu, _ := os.Create(`cpu.prof`)
+	fheap, _ := os.Create(`heap.prof`)
+
+	pprof.StartCPUProfile(fcpu)
+	pprof.WriteHeapProfile(fheap)
+	trace.Start(f)
 
 	var lastPlan goapai.Plan
 	for b.Loop() {
 		//goapai.GetPlan(entity.agent, 15)
 		_, lastPlan = goapai.GetPlan(entity.agent, 15)
 	}
-	fmt.Println(len(lastPlan))
+	fmt.Println("Actions for plan", len(lastPlan))
+	for _, j := range lastPlan {
+		fmt.Printf("		- %v\n", j.GetName())
+	}
 
-	//defer f.Close()
-	//defer fcpu.Close()
-	//defer fheap.Close()
-	//
-	//trace.Stop()
-	//pprof.StopCPUProfile()
+	defer f.Close()
+	defer fcpu.Close()
+	defer fheap.Close()
+
+	trace.Stop()
+	pprof.StopCPUProfile()
 
 	b.ReportAllocs()
 }

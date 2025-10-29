@@ -32,13 +32,12 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 		nodesPool.Put(closedNodes[:0])
 	}()
 
-	data := slices.Clone(from.states)
 	openNodes = append(openNodes, &node{
 		Action: &Action{},
 		world: world{
 			Agent:  from.Agent,
-			states: data,
-			hash:   data.hashStates(),
+			states: slices.Clone(from.states),
+			hash:   from.hash,
 		},
 		parentNode: nil,
 		cost:       0,
@@ -176,34 +175,13 @@ func simulateActionState(action *Action, w world) (world, bool) {
 		return world{}, false
 	}
 
-	data, err := action.effects.apply(w)
+	w.states = slices.Clone(w.states)
+	err := action.effects.apply(&w)
 	if err != nil {
 		return world{}, false
 	}
 
-	// Calculate hash incrementally by tracking changes
-	newHash := w.hash
-
-	// For each effect, we need to XOR out the old state and XOR in the new state
-	for _, effect := range action.effects {
-		// Find old state if it exists
-		oldIndex := w.states.GetIndex(effect.GetKey())
-		if oldIndex >= 0 {
-			newHash ^= w.states[oldIndex].Hash() // Remove old
-		}
-
-		// Find new state in modified states
-		newIndex := data.GetIndex(effect.GetKey())
-		if newIndex >= 0 {
-			newHash ^= data[newIndex].Hash() // Add new
-		}
-	}
-
-	return world{
-		Agent:  w.Agent,
-		states: data,
-		hash:   newHash,
-	}, true
+	return w, true
 }
 
 func allowedRepetition(action *Action, parentNode *node) bool {

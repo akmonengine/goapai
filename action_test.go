@@ -67,7 +67,7 @@ func TestEffect_Check_Match(t *testing.T) {
 	SetState[int](&agent, 1, 100)
 
 	effect := Effect[int]{Key: 1, Value: 100, Operator: SET}
-	if !effect.check(agent.states) {
+	if !effect.check(agent.w) {
 		t.Error("Expected effect to match state")
 	}
 }
@@ -77,7 +77,7 @@ func TestEffect_Check_NoMatch(t *testing.T) {
 	SetState[int](&agent, 1, 100)
 
 	effect := Effect[int]{Key: 1, Value: 200, Operator: SET}
-	if effect.check(agent.states) {
+	if effect.check(agent.w) {
 		t.Error("Expected effect not to match state")
 	}
 }
@@ -87,7 +87,7 @@ func TestEffect_Check_NonSetOperator(t *testing.T) {
 	SetState[int](&agent, 1, 100)
 
 	effect := Effect[int]{Key: 1, Value: 100, Operator: ADD}
-	if effect.check(agent.states) {
+	if effect.check(agent.w) {
 		t.Error("Expected non-SET operator to always return false")
 	}
 }
@@ -197,7 +197,7 @@ func TestEffectBool_Check_Match(t *testing.T) {
 	SetState[bool](&agent, 1, true)
 
 	effect := EffectBool{Key: 1, Value: true, Operator: SET}
-	if !effect.check(agent.states) {
+	if !effect.check(agent.w) {
 		t.Error("Expected effect to match state")
 	}
 }
@@ -207,7 +207,7 @@ func TestEffectBool_Check_NoMatch(t *testing.T) {
 	SetState[bool](&agent, 1, true)
 
 	effect := EffectBool{Key: 1, Value: false, Operator: SET}
-	if effect.check(agent.states) {
+	if effect.check(agent.w) {
 		t.Error("Expected effect not to match state")
 	}
 }
@@ -262,7 +262,7 @@ func TestEffectString_Check_Match(t *testing.T) {
 	SetState[string](&agent, 1, "test")
 
 	effect := EffectString{Key: 1, Value: "test", Operator: SET}
-	if !effect.check(agent.states) {
+	if !effect.check(agent.w) {
 		t.Error("Expected effect to match state")
 	}
 }
@@ -272,7 +272,7 @@ func TestEffectString_Check_NoMatch(t *testing.T) {
 	SetState[string](&agent, 1, "test")
 
 	effect := EffectString{Key: 1, Value: "other", Operator: SET}
-	if effect.check(agent.states) {
+	if effect.check(agent.w) {
 		t.Error("Expected effect not to match state")
 	}
 }
@@ -349,7 +349,7 @@ func TestEffects_SatisfyStates_AllMatch(t *testing.T) {
 		EffectBool{Key: 2, Value: true, Operator: SET},
 	}
 
-	if !effects.satisfyStates(agent.states) {
+	if !effects.satisfyStates(agent.w) {
 		t.Error("Expected effects to satisfy world")
 	}
 }
@@ -364,7 +364,7 @@ func TestEffects_SatisfyStates_OneFails(t *testing.T) {
 		EffectBool{Key: 2, Value: false, Operator: SET},
 	}
 
-	if effects.satisfyStates(agent.states) {
+	if effects.satisfyStates(agent.w) {
 		t.Error("Expected effects not to satisfy world when one doesn't match")
 	}
 }
@@ -379,7 +379,7 @@ func TestEffects_Apply(t *testing.T) {
 		EffectBool{Key: 2, Value: true, Operator: SET},
 	}
 
-	newData, err := effects.apply(agent.states)
+	newData, err := effects.apply(agent.w)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -415,7 +415,7 @@ func TestEffects_Apply_Error(t *testing.T) {
 		Effect[float64]{Key: 1, Value: 50.0, Operator: SET}, // Type mismatch
 	}
 
-	_, err := effects.apply(agent.states)
+	_, err := effects.apply(agent.w)
 	if err == nil {
 		t.Error("Expected error for type mismatch")
 	}

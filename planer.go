@@ -32,7 +32,11 @@ func GetPlan(agent Agent, maxDepth int) (GoalName, Plan) {
 		return "", Plan{}
 	}
 
-	return goalName, astar(agent.states, agent.goals[goalName], agent.actions, maxDepth)
+	for _, state := range agent.w.states {
+		state.Store(&agent.w)
+	}
+
+	return goalName, astar(agent.w, agent.goals[goalName], agent.actions, maxDepth)
 }
 
 func (agent *Agent) getPrioritizedGoalName() (GoalName, error) {

@@ -27,11 +27,14 @@ type StateInterface interface {
 	Check(w world, key StateKey) bool
 	GetKey() StateKey
 	GetValue() any
+	Store(w *world)
+	GetHash() uint64
 	Hash() uint64
 }
 type State[T Numeric | bool | string] struct {
 	Key   StateKey
 	Value T
+	hash  uint64
 }
 
 type StateKey uint16
@@ -42,6 +45,12 @@ type world struct {
 	Agent  *Agent
 	states states
 	hash   uint64
+}
+
+func createState[T Numeric | bool | string](s State[T]) State[T] {
+	s.hash = s.Hash()
+
+	return s
 }
 
 func (state State[T]) GetKey() StateKey {
@@ -65,6 +74,17 @@ func (state State[T]) Check(w world, key StateKey) bool {
 
 func (state State[T]) GetValue() any {
 	return state.Value
+}
+
+func (state State[T]) Store(w *world) {
+	oldHash := state.hash
+	state.hash = state.Hash()
+	w.hash = updateHashIncremental(w.hash, oldHash, state.hash)
+	w.states[state.Key] = state
+}
+
+func (state State[T]) GetHash() uint64 {
+	return state.hash
 }
 
 // Hash returns a unique hash for this state using FNV-64a
@@ -119,25 +139,11 @@ func (statesData states) GetIndex(stateKey StateKey) int {
 	return -1
 }
 
-// hashStates computes the initial hash using XOR of individual state hashes
-// This is O(n) but only called once when creating initial state
-func (statesData states) hashStates() uint64 {
-	var hash uint64 = 0
-	for _, state := range statesData {
-		hash ^= state.Hash() // XOR for incremental updates
-	}
-	return hash
-}
-
 // updateHashIncremental updates a hash by removing old state and adding new state
-// This is O(1) - the key optimization
-func updateHashIncremental(currentHash uint64, oldState, newState StateInterface) uint64 {
-	if oldState != nil {
-		currentHash ^= oldState.Hash() // Remove old
-	}
-	if newState != nil {
-		currentHash ^= newState.Hash() // Add new
-	}
+func updateHashIncremental(currentHash uint64, oldStateHash, newStateHash uint64) uint64 {
+	currentHash ^= oldStateHash // Remove old
+	currentHash ^= newStateHash // Add new
+
 	return currentHash
 }
 

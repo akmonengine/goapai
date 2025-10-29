@@ -22,7 +22,7 @@ func TestGetImpactingActions(t *testing.T) {
 		EffectBool{Key: 2, Value: false, Operator: SET},
 	})
 
-	impacting := getImpactingActions(agent.states, actions)
+	impacting := getImpactingActions(agent.w, actions)
 
 	if len(impacting) != 1 {
 		t.Errorf("Expected 1 impacting action, got %d", len(impacting))
@@ -45,7 +45,7 @@ func TestGetImpactingActions_AllImpacting(t *testing.T) {
 		Effect[int]{Key: 1, Value: 50, Operator: SET},
 	})
 
-	impacting := getImpactingActions(agent.states, actions)
+	impacting := getImpactingActions(agent.w, actions)
 
 	if len(impacting) != 2 {
 		t.Errorf("Expected 2 impacting actions, got %d", len(impacting))
@@ -79,18 +79,18 @@ func TestGetLessCostlyNodeKey_Empty(t *testing.T) {
 func TestFetchNode_Found(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.hash = agent1.states.states.hashStates()
+	agent1.w.hash = agent1.w.states.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 100)
-	agent2.states.hash = agent2.states.states.hashStates()
+	agent2.w.hash = agent2.w.states.hashStates()
 
 	nodes := []*node{
-		{world: agent1.states},
-		{world: agent2.states},
+		{world: agent1.w},
+		{world: agent2.w},
 	}
 
-	key, found := fetchNode(nodes, agent1.states)
+	key, found := fetchNode(nodes, agent1.w)
 	if !found {
 		t.Error("Expected to find node")
 	}
@@ -102,17 +102,17 @@ func TestFetchNode_Found(t *testing.T) {
 func TestFetchNode_NotFound(t *testing.T) {
 	agent1 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent1, 1, 100)
-	agent1.states.hash = agent1.states.states.hashStates()
+	agent1.w.hash = agent1.w.states.hashStates()
 
 	agent2 := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent2, 1, 200)
-	agent2.states.hash = agent2.states.states.hashStates()
+	agent2.w.hash = agent2.w.states.hashStates()
 
 	nodes := []*node{
-		{world: agent1.states},
+		{world: agent1.w},
 	}
 
-	_, found := fetchNode(nodes, agent2.states)
+	_, found := fetchNode(nodes, agent2.w)
 	if found {
 		t.Error("Expected not to find node")
 	}
@@ -168,7 +168,7 @@ func TestSimulateActionState(t *testing.T) {
 		},
 	}
 
-	newStates, ok := simulateActionState(action, agent.states)
+	newStates, ok := simulateActionState(action, agent.w)
 	if !ok {
 		t.Error("Expected simulation to succeed")
 	}
@@ -193,7 +193,7 @@ func TestSimulateActionState_NoChange(t *testing.T) {
 		},
 	}
 
-	_, ok := simulateActionState(action, agent.states)
+	_, ok := simulateActionState(action, agent.w)
 	if ok {
 		t.Error("Expected simulation to fail when effects match current state")
 	}
@@ -244,7 +244,7 @@ func TestCountMissingGoal_AllMet(t *testing.T) {
 		},
 	}
 
-	count := countMissingGoal(goal, agent.states)
+	count := countMissingGoal(goal, agent.w)
 	if count != 0 {
 		t.Errorf("Expected 0 missing goals, got %d", count)
 	}
@@ -262,7 +262,7 @@ func TestCountMissingGoal_OneMissing(t *testing.T) {
 		},
 	}
 
-	count := countMissingGoal(goal, agent.states)
+	count := countMissingGoal(goal, agent.w)
 	if count != 1 {
 		t.Errorf("Expected 1 missing goal, got %d", count)
 	}
@@ -280,7 +280,7 @@ func TestCountMissingGoal_AllMissing(t *testing.T) {
 		},
 	}
 
-	count := countMissingGoal(goal, agent.states)
+	count := countMissingGoal(goal, agent.w)
 	if count != 2 {
 		t.Errorf("Expected 2 missing goals, got %d", count)
 	}
@@ -300,7 +300,7 @@ func TestComputeHeuristic(t *testing.T) {
 		},
 	}
 
-	heuristic := computeHeuristic(fromAgent.states, goal, currentAgent.states)
+	heuristic := computeHeuristic(fromAgent.w, goal, currentAgent.w)
 	if heuristic <= 0 {
 		t.Error("Expected positive heuristic for unmet goal")
 	}
@@ -319,7 +319,7 @@ func TestComputeHeuristic_GoalMet(t *testing.T) {
 		},
 	}
 
-	heuristic := computeHeuristic(fromAgent.states, goal, currentAgent.states)
+	heuristic := computeHeuristic(fromAgent.w, goal, currentAgent.w)
 	if heuristic != 0 {
 		t.Errorf("Expected 0 heuristic for met goal, got %f", heuristic)
 	}
@@ -341,7 +341,7 @@ func TestAstar_SimpleGoal(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	// Plan includes the root node with empty action
 	if len(plan) != 4 {
@@ -362,7 +362,7 @@ func TestAstar_UnreachableGoal(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	if len(plan) != 0 {
 		t.Errorf("Expected empty plan for unreachable goal, got %d actions", len(plan))
@@ -385,7 +385,7 @@ func TestAstar_MaxDepth(t *testing.T) {
 	}
 
 	// Max depth of 5 should prevent reaching goal of 100
-	plan := astar(agent.states, goal, actions, 5)
+	plan := astar(agent.w, goal, actions, 5)
 
 	if len(plan) > 5 {
 		t.Errorf("Expected plan to respect maxDepth of 5, got %d actions", len(plan))
@@ -404,7 +404,7 @@ func TestAstar_AlreadyAtGoal(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	// Plan includes root node with empty action when already at goal
 	if len(plan) != 1 {
@@ -430,7 +430,7 @@ func TestAstar_PreferLowerCost(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	// Plan includes root + action
 	if len(plan) != 2 {
@@ -465,7 +465,7 @@ func TestAstar_RespectConditions(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	// Plan includes root + 2 actions
 	if len(plan) != 3 {
@@ -497,7 +497,7 @@ func TestAstar_NonRepeatableActions(t *testing.T) {
 		},
 	}
 
-	plan := astar(agent.states, goal, actions, 10)
+	plan := astar(agent.w, goal, actions, 10)
 
 	// Non-repeatable action can only be used once, so goal is unreachable
 	if len(plan) != 0 {
@@ -509,7 +509,7 @@ func TestAstar_DataCloning(t *testing.T) {
 	agent := CreateAgent(Goals{}, Actions{})
 	SetState[int](&agent, 1, 100)
 
-	originalData := slices.Clone(agent.states.states)
+	originalData := slices.Clone(agent.w.states)
 
 	actions := Actions{}
 	actions.AddAction("modify", 1.0, false, Conditions{}, Effects{
@@ -522,13 +522,13 @@ func TestAstar_DataCloning(t *testing.T) {
 		},
 	}
 
-	_ = astar(agent.states, goal, actions, 10)
+	_ = astar(agent.w, goal, actions, 10)
 
 	// Original state should not be modified
-	if len(agent.states.states) != len(originalData) {
+	if len(agent.w.states) != len(originalData) {
 		t.Error("Original state was modified")
 	}
-	if agent.states.states[0].(State[int]).Value != originalData[0].(State[int]).Value {
+	if agent.w.states[0].(State[int]).Value != originalData[0].(State[int]).Value {
 		t.Error("Original state values were modified")
 	}
 }

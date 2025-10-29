@@ -32,7 +32,7 @@ func TestState_Operations(t *testing.T) {
 				SetState[int](&agent, 1, 100)
 
 				state := State[int]{Key: 1, Value: 100}
-				if !state.Check(agent.states, 1) {
+				if !state.Check(agent.w, 1) {
 					t.Error("Expected state to match")
 				}
 			},
@@ -44,7 +44,7 @@ func TestState_Operations(t *testing.T) {
 				SetState[int](&agent, 1, 100)
 
 				wrongState := State[int]{Key: 1, Value: 200}
-				if wrongState.Check(agent.states, 1) {
+				if wrongState.Check(agent.w, 1) {
 					t.Error("Expected state not to match")
 				}
 			},
@@ -55,7 +55,7 @@ func TestState_Operations(t *testing.T) {
 				agent := CreateAgent(Goals{}, Actions{})
 				state := State[int]{Key: 99, Value: 100}
 
-				if state.Check(agent.states, 99) {
+				if state.Check(agent.w, 99) {
 					t.Error("Expected false for non-existent key")
 				}
 			},
@@ -103,13 +103,13 @@ func TestStates_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			agent1 := CreateAgent(Goals{}, Actions{})
 			tt.setup1(&agent1)
-			agent1.states.hash = agent1.states.states.hashStates()
+			agent1.w.hash = agent1.w.states.hashStates()
 
 			agent2 := CreateAgent(Goals{}, Actions{})
 			tt.setup2(&agent2)
-			agent2.states.hash = agent2.states.states.hashStates()
+			agent2.w.hash = agent2.w.states.hashStates()
 
-			if got := agent1.states.Check(agent2.states); got != tt.wantMatch {
+			if got := agent1.w.Check(agent2.w); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v", got, tt.wantMatch)
 			}
 		})
@@ -150,7 +150,7 @@ func TestStatesData_Operations(t *testing.T) {
 			},
 		},
 		{
-			name: "hashStates same states",
+			name: "hashStates same w",
 			testFunc: func(t *testing.T) {
 				data1 := states{
 					State[int]{Key: 1, Value: 100},
@@ -166,12 +166,12 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 != hash2 {
-					t.Error("Expected identical states to produce same hash")
+					t.Error("Expected identical w to produce same hash")
 				}
 			},
 		},
 		{
-			name: "hashStates same states, different keys",
+			name: "hashStates same w, different keys",
 			testFunc: func(t *testing.T) {
 				data1 := states{
 					State[int]{Key: 1, Value: 100},
@@ -188,12 +188,12 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 != hash2 {
-					t.Error("Expected identical states to produce same hash")
+					t.Error("Expected identical w to produce same hash")
 				}
 			},
 		},
 		{
-			name: "hashStates different states",
+			name: "hashStates different w",
 			testFunc: func(t *testing.T) {
 				data1 := states{
 					State[int]{Key: 1, Value: 100},
@@ -209,7 +209,7 @@ func TestStatesData_Operations(t *testing.T) {
 				hash2 := data2.hashStates()
 
 				if hash1 == hash2 {
-					t.Error("Expected different states to produce different hash")
+					t.Error("Expected different w to produce different hash")
 				}
 			},
 		},
@@ -254,7 +254,7 @@ func TestCondition_Operators(t *testing.T) {
 			SetState[int](&agent, 1, tt.stateVal)
 
 			condition := Condition[int]{Key: 1, Value: tt.condVal, Operator: tt.operator}
-			if got := condition.Check(agent.states); got != tt.wantMatch {
+			if got := condition.Check(agent.w); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v for state=%d, cond=%d, op=%v",
 					got, tt.wantMatch, tt.stateVal, tt.condVal, tt.operator)
 			}
@@ -266,7 +266,7 @@ func TestCondition_KeyNotFound(t *testing.T) {
 	agent := CreateAgent(Goals{}, Actions{})
 	condition := Condition[int]{Key: 99, Value: 100, Operator: EQUAL}
 
-	if condition.Check(agent.states) {
+	if condition.Check(agent.w) {
 		t.Error("Expected condition to fail when key not found")
 	}
 }
@@ -292,7 +292,7 @@ func TestConditionBool(t *testing.T) {
 			SetState[bool](&agent, 1, tt.stateVal)
 
 			condition := ConditionBool{Key: 1, Value: tt.condVal, Operator: tt.operator}
-			if got := condition.Check(agent.states); got != tt.wantMatch {
+			if got := condition.Check(agent.w); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v", got, tt.wantMatch)
 			}
 		})
@@ -302,7 +302,7 @@ func TestConditionBool(t *testing.T) {
 		agent := CreateAgent(Goals{}, Actions{})
 		condition := ConditionBool{Key: 99, Value: true, Operator: EQUAL}
 
-		if condition.Check(agent.states) {
+		if condition.Check(agent.w) {
 			t.Error("Expected condition to fail when key not found")
 		}
 	})
@@ -328,7 +328,7 @@ func TestConditionString(t *testing.T) {
 			SetState[string](&agent, 1, tt.stateVal)
 
 			condition := ConditionString{Key: 1, Value: tt.condVal, Operator: tt.operator}
-			if got := condition.Check(agent.states); got != tt.wantMatch {
+			if got := condition.Check(agent.w); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v", got, tt.wantMatch)
 			}
 		})
@@ -359,7 +359,7 @@ func TestConditionFn(t *testing.T) {
 				},
 			}
 
-			if got := condition.Check(agent.states); got != tt.wantResult {
+			if got := condition.Check(agent.w); got != tt.wantResult {
 				t.Errorf("Check() = %v, want %v", got, tt.wantResult)
 			}
 
@@ -369,7 +369,7 @@ func TestConditionFn(t *testing.T) {
 			}
 
 			// Call again to test cache
-			if got := condition.Check(agent.states); got != tt.wantResult {
+			if got := condition.Check(agent.w); got != tt.wantResult {
 				t.Error("Expected cached result to match")
 			}
 		})
@@ -420,7 +420,7 @@ func TestConditions_Check(t *testing.T) {
 			agent := CreateAgent(Goals{}, Actions{})
 			tt.setup(&agent)
 
-			if got := tt.conditions.Check(agent.states); got != tt.wantMatch {
+			if got := tt.conditions.Check(agent.w); got != tt.wantMatch {
 				t.Errorf("Check() = %v, want %v", got, tt.wantMatch)
 			}
 		})
@@ -626,19 +626,19 @@ func TestIncrementalHashConsistency(t *testing.T) {
 	SetState[int](&agent, 1, 100)
 	SetState[int](&agent, 2, 200)
 	SetState[bool](&agent, 3, true)
-	agent.states.hash = agent.states.states.hashStates()
+	agent.w.hash = agent.w.states.hashStates()
 
-	initialHash := agent.states.hash
+	initialHash := agent.w.hash
 
 	// Modify a state and calculate hash incrementally
-	oldState := agent.states.states[0]
+	oldState := agent.w.states[0]
 	newState := State[int]{Key: 1, Value: 150}
 
-	incrementalHash := updateHashIncremental(agent.states.hash, oldState, newState)
+	incrementalHash := updateHashIncremental(agent.w.hash, oldState, newState)
 
 	// Modify the same state and calculate hash from scratch
-	agent.states.states[0] = newState
-	fullHash := agent.states.states.hashStates()
+	agent.w.states[0] = newState
+	fullHash := agent.w.states.hashStates()
 
 	if incrementalHash != fullHash {
 		t.Errorf("Incremental hash (%d) doesn't match full recalculation (%d)", incrementalHash, fullHash)
