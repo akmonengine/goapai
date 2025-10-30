@@ -1,8 +1,8 @@
 package goapai
 
 import (
+	"container/heap"
 	"slices"
-	"sync"
 )
 
 type node struct {
@@ -14,25 +14,48 @@ type node struct {
 	totalCost  float32
 	heuristic  float32
 	depth      uint16
+	heapIndex  int // Index in the heap, needed for heap.Fix
 }
 
-var nodesPool = sync.Pool{
-	New: func() any {
-		return make([]*node, 0, 32)
-	},
+// nodeHeap implements heap.Interface for a min-heap of nodes based on totalCost
+type nodeHeap []*node
+
+func (h nodeHeap) Len() int { return len(h) }
+
+func (h nodeHeap) Less(i, j int) bool {
+	return h[i].totalCost < h[j].totalCost
+}
+
+func (h nodeHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].heapIndex = i
+	h[j].heapIndex = j
+}
+
+func (h *nodeHeap) Push(x interface{}) {
+	n := x.(*node)
+	n.heapIndex = len(*h)
+	*h = append(*h, n)
+}
+
+func (h *nodeHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = nil      // avoid memory leak
+	item.heapIndex = -1 // mark as removed
+	*h = old[0 : n-1]
+	return item
 }
 
 func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
-	openNodes := nodesPool.Get().([]*node)
-	closedNodes := nodesPool.Get().([]*node)
+	openNodes := make(map[uint64]*node)
+	openNodesHeap := &nodeHeap{}
+	heap.Init(openNodesHeap)
+	closedNodes := make(map[uint64]*node)
 
-	defer func() {
-		nodesPool.Put(openNodes[:0])
-		nodesPool.Put(closedNodes[:0])
-	}()
-
-	openNodes = append(openNodes, &node{
+	startNode := &node{
 		Action: &Action{},
 		world: world{
 			Agent:  from.Agent,
@@ -44,13 +67,17 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 		totalCost:  0,
 		heuristic:  0,
 		depth:      0,
-	})
+		heapIndex:  -1,
+	}
+	openNodes[startNode.world.hash] = startNode
+	heap.Push(openNodesHeap, startNode)
 
-	for openNodeKey := 0; openNodeKey != -1; openNodeKey = getLessCostlyNodeKey(openNodes) {
-		parentNode := openNodes[openNodeKey]
+	for openNodesHeap.Len() > 0 {
+		parentNode := heap.Pop(openNodesHeap).(*node)
+		delete(openNodes, parentNode.world.hash)
+
 		if parentNode.depth > uint16(maxDepth) {
-			openNodes = append(openNodes[:openNodeKey], openNodes[openNodeKey+1:]...)
-			closedNodes = append(closedNodes, parentNode)
+			closedNodes[parentNode.world.hash] = parentNode
 			continue
 		}
 
@@ -73,34 +100,36 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 				continue
 			}
 
-			if nodeKey, found := fetchNode(openNodes, simulatedStates); found {
-				node := openNodes[nodeKey]
-				if (parentNode.cost + action.cost) < node.cost {
-					node.Action = action
-					node.world = simulatedStates
-					node.parentNode = parentNode
-					node.cost = parentNode.cost + action.cost
-					node.totalCost = parentNode.cost + action.cost + node.heuristic
-					node.depth = parentNode.depth + 1
+			if currentNode, found := openNodes[simulatedStates.hash]; found {
+				if (parentNode.cost + action.cost) < currentNode.cost {
+					currentNode.Action = action
+					currentNode.world = simulatedStates
+					currentNode.parentNode = parentNode
+					currentNode.cost = parentNode.cost + action.cost
+					currentNode.totalCost = parentNode.cost + action.cost + currentNode.heuristic
+					currentNode.depth = parentNode.depth + 1
 
-					openNodes[nodeKey] = node
+					// Fix heap position after cost update
+					heap.Fix(openNodesHeap, currentNode.heapIndex)
 				}
-			} else if nodeKey, found := fetchNode(closedNodes, simulatedStates); found {
-				node := closedNodes[nodeKey]
-				if (parentNode.cost + action.cost) < node.cost {
-					node.Action = action
-					node.world = simulatedStates
-					node.parentNode = parentNode
-					node.cost = parentNode.cost + action.cost
-					node.totalCost = parentNode.cost + action.cost + node.heuristic
-					node.depth = parentNode.depth + 1
+			} else if currentNode, found := closedNodes[simulatedStates.hash]; found {
+				if (parentNode.cost + action.cost) < currentNode.cost {
+					currentNode.Action = action
+					currentNode.world = simulatedStates
+					currentNode.parentNode = parentNode
+					currentNode.cost = parentNode.cost + action.cost
+					currentNode.totalCost = parentNode.cost + action.cost + currentNode.heuristic
+					currentNode.depth = parentNode.depth + 1
 
-					openNodes[openNodeKey] = node
-					closedNodes = append(closedNodes[:nodeKey], closedNodes[nodeKey+1:]...)
+					openNodes[simulatedStates.hash] = currentNode
+					delete(closedNodes, simulatedStates.hash)
+
+					// Re-add to heap
+					heap.Push(openNodesHeap, currentNode)
 				}
 			} else {
 				heuristic := computeHeuristic(from, goal, simulatedStates)
-				openNodes = append(openNodes, &node{
+				newNode := &node{
 					Action:     action,
 					world:      simulatedStates,
 					parentNode: parentNode,
@@ -108,12 +137,14 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					totalCost:  parentNode.cost + action.cost + heuristic,
 					heuristic:  heuristic,
 					depth:      parentNode.depth + 1,
-				})
+					heapIndex:  -1,
+				}
+				openNodes[simulatedStates.hash] = newNode
+				heap.Push(openNodesHeap, newNode)
 			}
 		}
 
-		openNodes = append(openNodes[:openNodeKey], openNodes[openNodeKey+1:]...)
-		closedNodes = append(closedNodes, parentNode)
+		closedNodes[parentNode.world.hash] = parentNode
 	}
 
 	return Plan{}
@@ -131,28 +162,6 @@ func getImpactingActions(from world, actions Actions) Actions {
 	}
 
 	return availableActions
-}
-
-func getLessCostlyNodeKey(openNodes []*node) int {
-	lowestKey := -1
-
-	for key, node := range openNodes {
-		if lowestKey < 0 || node.totalCost < openNodes[lowestKey].totalCost {
-			lowestKey = key
-		}
-	}
-
-	return lowestKey
-}
-
-func fetchNode(nodes []*node, w world) (int, bool) {
-	for k, n := range nodes {
-		if n.world.Check(w) {
-			return k, true
-		}
-	}
-
-	return 0, false
 }
 
 func buildPlanFromNode(node *node) Plan {
