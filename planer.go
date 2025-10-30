@@ -32,7 +32,11 @@ func GetPlan(agent Agent, maxDepth int) (GoalName, Plan) {
 		return "", Plan{}
 	}
 
-	return goalName, astar(agent.states, agent.goals[goalName], agent.actions, maxDepth)
+	for _, state := range agent.w.states {
+		state.Store(&agent.w)
+	}
+
+	return goalName, astar(agent.w, agent.goals[goalName], agent.actions, maxDepth)
 }
 
 func (agent *Agent) getPrioritizedGoalName() (GoalName, error) {
@@ -53,15 +57,4 @@ func (agent *Agent) getPrioritizedGoalName() (GoalName, error) {
 	} else {
 		return prioritizedGoalName, fmt.Errorf("no goal available")
 	}
-}
-
-// GetNextAction returns the first Action required to achieve the Plan.
-//
-// An error is returned if no action is available, meaning the Plan is empty.
-func (plan Plan) GetNextAction() (Action, error) {
-	if len(plan) > 0 {
-		return *plan[0], nil
-	}
-
-	return Action{}, fmt.Errorf("no action available")
 }

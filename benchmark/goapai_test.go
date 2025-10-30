@@ -1,7 +1,6 @@
 package benchmark
 
 import (
-	"fmt"
 	"goapai"
 	"testing"
 )
@@ -63,11 +62,11 @@ func BenchmarkGoapAI(b *testing.B) {
 
 	entity.agent = goapai.CreateAgent(goals, actions)
 	goapai.SetSensor(&entity.agent, "entity", &entity)
-	goapai.SetState[int](&entity.agent, ATTRIBUTE_2, 0)
 	goapai.SetState[int](&entity.agent, ATTRIBUTE_1, 80)
+	goapai.SetState[int](&entity.agent, ATTRIBUTE_2, 0)
 	goapai.SetState[int](&entity.agent, ATTRIBUTE_3, 0)
 
-	// Write to the trace file.
+	//Write to the trace file.
 	//f, _ := os.Create("trace.out")
 	//fcpu, _ := os.Create(`cpu.prof`)
 	//fheap, _ := os.Create(`heap.prof`)
@@ -76,12 +75,10 @@ func BenchmarkGoapAI(b *testing.B) {
 	//pprof.WriteHeapProfile(fheap)
 	//trace.Start(f)
 
-	var lastPlan goapai.Plan
 	for b.Loop() {
 		//goapai.GetPlan(entity.agent, 15)
-		_, lastPlan = goapai.GetPlan(entity.agent, 15)
+		goapai.GetPlan(entity.agent, 15)
 	}
-	fmt.Println(len(lastPlan))
 
 	//defer f.Close()
 	//defer fcpu.Close()
