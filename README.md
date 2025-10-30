@@ -174,10 +174,7 @@ GOAP needs to be benchmarked and monitored regularly because of exponential risk
 Though if well scoped you can manage hundred of Actions for 200µs per Agent.
 
 ## What's next?
-- The simulateActionState functions, to check the effect of an action on a node, takes up to 40% of CPU and 40% of memory.
-We need to refactorize this part, or find another logical path.
-- Heuristic calculation in A* is done poorly, we need a better algorithm to improve performances.
-- Benchmark a backward implementation like D*, to improve performances.
+- Benchmark a backward implementation like D*. It might improve performances.
 
 ## Sources
 - https://web.archive.org/web/20230912145018/http://alumni.media.mit.edu/~jorkin/goap.html
