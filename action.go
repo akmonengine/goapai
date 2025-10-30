@@ -83,10 +83,10 @@ func (effect Effect[T]) apply(w *world) error {
 	k := w.states.GetIndex(effect.Key)
 	if k < 0 {
 		if slices.Contains([]arithmetic{SET, ADD}, effect.Operator) {
-			w.states = append(w.states, State[T]{Value: effect.Value})
+			w.states = append(w.states, State[T]{Key: effect.Key, Value: effect.Value})
 			return nil
 		} else if slices.Contains([]arithmetic{SUBSTRACT}, effect.Operator) {
-			w.states = append(w.states, State[T]{Value: -effect.Value})
+			w.states = append(w.states, State[T]{Key: effect.Key, Value: -effect.Value})
 			return nil
 		}
 		return fmt.Errorf("w does not exist")
@@ -150,7 +150,7 @@ func (effectBool EffectBool) apply(w *world) error {
 
 	k := w.states.GetIndex(effectBool.Key)
 	if k < 0 {
-		w.states = append(w.states, State[bool]{Value: effectBool.Value})
+		w.states = append(w.states, State[bool]{Key: effectBool.Key, Value: effectBool.Value})
 		return nil
 	}
 	if _, ok := w.states[k].(State[bool]); !ok {
@@ -196,7 +196,7 @@ func (effectString EffectString) apply(w *world) error {
 
 	k := w.states.GetIndex(effectString.Key)
 	if k < 0 {
-		w.states = append(w.states, State[string]{Value: effectString.Value})
+		w.states = append(w.states, State[string]{Key: effectString.Key, Value: effectString.Value})
 		return nil
 	}
 	if _, ok := w.states[k].(State[string]); !ok {
