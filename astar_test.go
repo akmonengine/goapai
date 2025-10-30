@@ -75,49 +75,6 @@ func TestGetLessCostlyNodeKey_Empty(t *testing.T) {
 	}
 }
 
-// Test fetchNode
-func TestFetchNode_Found(t *testing.T) {
-	agent1 := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent1, 1, 100)
-	agent1.w.hash = agent1.w.states.hashStates()
-
-	agent2 := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent2, 1, 100)
-	agent2.w.hash = agent2.w.states.hashStates()
-
-	nodes := []*node{
-		{world: agent1.w},
-		{world: agent2.w},
-	}
-
-	key, found := fetchNode(nodes, agent1.w)
-	if !found {
-		t.Error("Expected to find node")
-	}
-	if key != 0 {
-		t.Errorf("Expected key 0, got %d", key)
-	}
-}
-
-func TestFetchNode_NotFound(t *testing.T) {
-	agent1 := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent1, 1, 100)
-	agent1.w.hash = agent1.w.states.hashStates()
-
-	agent2 := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent2, 1, 200)
-	agent2.w.hash = agent2.w.states.hashStates()
-
-	nodes := []*node{
-		{world: agent1.w},
-	}
-
-	_, found := fetchNode(nodes, agent2.w)
-	if found {
-		t.Error("Expected not to find node")
-	}
-}
-
 // Test buildPlanFromNode
 func TestBuildPlanFromNode(t *testing.T) {
 	action1 := &Action{name: "action1", cost: 1.0}

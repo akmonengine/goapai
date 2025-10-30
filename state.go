@@ -1,8 +1,6 @@
 package goapai
 
 import (
-	"encoding/binary"
-	"hash/fnv"
 	"math"
 )
 
@@ -80,48 +78,54 @@ func (state State[T]) Store(w *world) {
 	oldHash := state.hash
 	state.hash = state.Hash()
 	w.hash = updateHashIncremental(w.hash, oldHash, state.hash)
-	w.states[state.Key] = state
+	k := w.states.GetIndex(state.Key)
+	if k < 0 {
+		w.states = append(w.states, state)
+	} else {
+		w.states[k] = state
+	}
 }
 
 func (state State[T]) GetHash() uint64 {
 	return state.hash
 }
 
-// Hash returns a unique hash for this state using FNV-64a
+// Hash returns a unique hash for this state using a fast multiplicative hash
+// It implements a fast inline multiplicative hash
+// Uses prime multipliers for good distribution without allocations
 func (state State[T]) Hash() uint64 {
-	h := fnv.New64a()
+	const (
+		prime1 uint64 = 11400714819323198485 // Large prime for key
+		prime2 uint64 = 14029467366897019727 // Second prime for value
+	)
 
-	// Write the key
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, uint16(state.Key))
-	h.Write(buf)
+	// Start with key
+	hash := uint64(state.Key) * prime1
 
-	// Write the value based on type
-	buf = make([]byte, 8)
+	// Mix in value based on type
 	switch v := any(state.Value).(type) {
 	case int8:
-		binary.LittleEndian.PutUint64(buf, uint64(v))
+		hash ^= uint64(v) * prime2
 	case int:
-		binary.LittleEndian.PutUint64(buf, uint64(v))
+		hash ^= uint64(v) * prime2
 	case uint8:
-		binary.LittleEndian.PutUint64(buf, uint64(v))
+		hash ^= uint64(v) * prime2
 	case uint64:
-		binary.LittleEndian.PutUint64(buf, v)
+		hash ^= v * prime2
 	case float64:
-		binary.LittleEndian.PutUint64(buf, math.Float64bits(v))
+		hash ^= math.Float64bits(v) * prime2
 	case bool:
 		if v {
-			binary.LittleEndian.PutUint64(buf, 1)
-		} else {
-			binary.LittleEndian.PutUint64(buf, 0)
+			hash ^= prime2
 		}
 	case string:
-		h.Write([]byte(v))
-		return h.Sum64()
+		// For strings, hash each byte
+		for i := 0; i < len(v); i++ {
+			hash = hash*prime2 ^ uint64(v[i])
+		}
 	}
-	h.Write(buf)
 
-	return h.Sum64()
+	return hash
 }
 
 // Check compares world and states2 by their hash.
