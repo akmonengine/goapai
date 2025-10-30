@@ -11,45 +11,43 @@ func TestEffectString_GetKey(t *testing.T) {
 
 func TestEffectString_Check(t *testing.T) {
 	tests := []struct {
-		name       string
-		stateVal   string
-		effectKey  StateKey
-		effectVal  string
-		operator   arithmetic
-		want       bool
+		name      string
+		stateVal  string
+		effectKey StateKey
+		effectVal string
+		operator  arithmetic
+		want      bool
 	}{
 		{
-			name:       "SET match",
-			stateVal:   "hello",
-			effectKey:  1,
-			effectVal:  "hello",
-			operator:   SET,
-			want:       true,
+			name:      "SET match",
+			stateVal:  "hello",
+			effectKey: 1,
+			effectVal: "hello",
+			operator:  SET,
+			want:      true,
 		},
 		{
-			name:       "SET no match",
-			stateVal:   "hello",
-			effectKey:  1,
-			effectVal:  "world",
-			operator:   SET,
-			want:       false,
+			name:      "SET no match",
+			stateVal:  "hello",
+			effectKey: 1,
+			effectVal: "world",
+			operator:  SET,
+			want:      false,
 		},
 		{
-			name:       "key not found",
-			stateVal:   "hello",
-			effectKey:  99,
-			effectVal:  "test",
-			operator:   SET,
-			want:       false,
+			name:      "key not found",
+			stateVal:  "hello",
+			effectKey: 99,
+			effectVal: "test",
+			operator:  SET,
+			want:      false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := CreateAgent(Goals{}, Actions{})
-			if tt.effectKey == tt.effectKey { // Only set state if key matches
-				SetState[string](&agent, 1, tt.stateVal)
-			}
+			SetState[string](&agent, 1, tt.stateVal)
 
 			effect := EffectString{Key: tt.effectKey, Value: tt.effectVal, Operator: tt.operator}
 			got := effect.check(agent.w)
@@ -183,24 +181,24 @@ func TestEffectBool_GetKey(t *testing.T) {
 
 func TestEffectBool_Apply_Errors(t *testing.T) {
 	tests := []struct {
-		name      string
-		operator  arithmetic
-		wantErr   bool
+		name     string
+		operator arithmetic
+		wantErr  bool
 	}{
 		{
-			name:      "SET allowed",
-			operator:  SET,
-			wantErr:   false,
+			name:     "SET allowed",
+			operator: SET,
+			wantErr:  false,
 		},
 		{
-			name:      "ADD not allowed",
-			operator:  ADD,
-			wantErr:   true,
+			name:     "ADD not allowed",
+			operator: ADD,
+			wantErr:  true,
 		},
 		{
-			name:      "SUBSTRACT not allowed",
-			operator:  SUBSTRACT,
-			wantErr:   true,
+			name:     "SUBSTRACT not allowed",
+			operator: SUBSTRACT,
+			wantErr:  true,
 		},
 	}
 
@@ -224,14 +222,16 @@ func TestEffectBool_Apply_Errors(t *testing.T) {
 
 func TestEffect_Apply_AllOperators(t *testing.T) {
 	tests := []struct {
-		name      string
-		initial   int
-		operator  arithmetic
-		value     int
-		wantVal   int
-		wantErr   bool
+		key      StateKey
+		name     string
+		initial  int
+		operator arithmetic
+		value    int
+		wantVal  int
+		wantErr  bool
 	}{
 		{
+			key:      1,
 			name:     "SET",
 			initial:  100,
 			operator: SET,
@@ -239,6 +239,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  50,
 		},
 		{
+			key:      1,
 			name:     "ADD",
 			initial:  100,
 			operator: ADD,
@@ -246,6 +247,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  150,
 		},
 		{
+			key:      1,
 			name:     "SUBSTRACT",
 			initial:  100,
 			operator: SUBSTRACT,
@@ -253,6 +255,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  70,
 		},
 		{
+			key:      1,
 			name:     "MULTIPLY",
 			initial:  10,
 			operator: MULTIPLY,
@@ -260,6 +263,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  50,
 		},
 		{
+			key:      1,
 			name:     "DIVIDE",
 			initial:  100,
 			operator: DIVIDE,
@@ -267,6 +271,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  25,
 		},
 		{
+			key:      1,
 			name:     "ADD on non-existing key",
 			initial:  0, // Not set
 			operator: ADD,
@@ -274,6 +279,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  50,
 		},
 		{
+			key:      1,
 			name:     "SUBSTRACT on non-existing key",
 			initial:  0, // Not set
 			operator: SUBSTRACT,
@@ -281,6 +287,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantVal:  -50,
 		},
 		{
+			key:      99,
 			name:     "MULTIPLY on non-existing key error",
 			initial:  0, // Not set
 			operator: MULTIPLY,
@@ -288,6 +295,7 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			key:      99,
 			name:     "DIVIDE on non-existing key error",
 			initial:  0, // Not set
 			operator: DIVIDE,
@@ -299,11 +307,9 @@ func TestEffect_Apply_AllOperators(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := CreateAgent(Goals{}, Actions{})
-			if tt.initial != 0 || (tt.operator != ADD && tt.operator != SUBSTRACT && tt.operator != MULTIPLY && tt.operator != DIVIDE) {
-				SetState[int](&agent, 1, tt.initial)
-			}
+			SetState[int](&agent, 1, tt.initial)
 
-			effect := Effect[int]{Key: 1, Value: tt.value, Operator: tt.operator}
+			effect := Effect[int]{Key: tt.key, Value: tt.value, Operator: tt.operator}
 			err := effect.apply(&agent.w)
 
 			if tt.wantErr {

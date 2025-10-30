@@ -4,10 +4,10 @@ import "testing"
 
 func TestNodeHeap_Less(t *testing.T) {
 	tests := []struct {
-		name      string
-		nodes     nodeHeap
-		i, j      int
-		wantLess  bool
+		name     string
+		nodes    nodeHeap
+		i, j     int
+		wantLess bool
 	}{
 		{
 			name: "first node has lower cost",
@@ -53,12 +53,12 @@ func TestNodeHeap_Less(t *testing.T) {
 
 func TestNodeHeap_Swap(t *testing.T) {
 	tests := []struct {
-		name           string
-		initialNodes   []*node
-		i, j           int
-		wantI, wantJ   int
-		wantIIndex     int
-		wantJIndex     int
+		name         string
+		initialNodes []*node
+		i, j         int
+		wantI, wantJ int
+		wantIIndex   int
+		wantJIndex   int
 	}{
 		{
 			name: "swap first and second",
@@ -207,14 +207,6 @@ func TestNodeHeap_Pop(t *testing.T) {
 
 			if popped != originalLast {
 				t.Error("Pop should return the last element")
-			}
-
-			// Verify no memory leak - the old last position should be nil
-			if tt.wantLen > 0 {
-				// We can't directly check the old slice, but we can verify length is correct
-				if cap(h) > 0 && len(h) < cap(h) {
-					// This is expected behavior - capacity unchanged, length reduced
-				}
 			}
 		})
 	}
