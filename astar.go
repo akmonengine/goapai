@@ -14,7 +14,8 @@ type node struct {
 	totalCost  float32
 	heuristic  float32
 	depth      uint16
-	heapIndex  int // Index in the heap, needed for heap.Fix
+	heapIndex  int  // Index in the heap, needed for heap.Fix
+	closed     bool // true = closed node, false = open node
 }
 
 // nodeHeap implements heap.Interface for a min-heap of nodes based on totalCost
@@ -50,10 +51,8 @@ func (h *nodeHeap) Pop() interface{} {
 
 func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
-	openNodes := make(map[uint64]*node)
-	openNodesHeap := &nodeHeap{}
-	heap.Init(openNodesHeap)
-	closedNodes := make(map[uint64]*node)
+	nodesHeap := &nodeHeap{}
+	heap.Init(nodesHeap)
 
 	startNode := &node{
 		Action: &Action{},
@@ -63,21 +62,23 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 			hash:   from.hash,
 		},
 		parentNode: nil,
-		cost:       0,
-		totalCost:  0,
-		heuristic:  0,
-		depth:      0,
 		heapIndex:  -1,
+		closed:     false,
 	}
-	openNodes[startNode.world.hash] = startNode
-	heap.Push(openNodesHeap, startNode)
+	heap.Push(nodesHeap, startNode)
 
-	for openNodesHeap.Len() > 0 {
-		parentNode := heap.Pop(openNodesHeap).(*node)
-		delete(openNodes, parentNode.world.hash)
+	for nodesHeap.Len() > 0 {
+		parentNode := heap.Pop(nodesHeap).(*node)
+
+		// Skip if already closed (lazy deletion)
+		if parentNode.closed {
+			continue
+		}
+
+		// Mark as closed
+		parentNode.closed = true
 
 		if parentNode.depth > uint16(maxDepth) {
-			closedNodes[parentNode.world.hash] = parentNode
 			continue
 		}
 
@@ -100,7 +101,8 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 				continue
 			}
 
-			if currentNode, found := openNodes[simulatedStates.hash]; found {
+			// Check if node exists in open nodes (closed=false)
+			if currentNode, found := fetchNodeInHeap(nodesHeap, simulatedStates, false); found {
 				if (parentNode.cost + action.cost) < currentNode.cost {
 					currentNode.Action = action
 					currentNode.world = simulatedStates
@@ -110,9 +112,10 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					currentNode.depth = parentNode.depth + 1
 
 					// Fix heap position after cost update
-					heap.Fix(openNodesHeap, currentNode.heapIndex)
+					heap.Fix(nodesHeap, currentNode.heapIndex)
 				}
-			} else if currentNode, found := closedNodes[simulatedStates.hash]; found {
+			} else if currentNode, found := fetchNodeInHeap(nodesHeap, simulatedStates, true); found {
+				// Node was closed, reopen it with better cost
 				if (parentNode.cost + action.cost) < currentNode.cost {
 					currentNode.Action = action
 					currentNode.world = simulatedStates
@@ -120,14 +123,13 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					currentNode.cost = parentNode.cost + action.cost
 					currentNode.totalCost = parentNode.cost + action.cost + currentNode.heuristic
 					currentNode.depth = parentNode.depth + 1
+					currentNode.closed = false // Reopen
 
-					openNodes[simulatedStates.hash] = currentNode
-					delete(closedNodes, simulatedStates.hash)
-
-					// Re-add to heap
-					heap.Push(openNodesHeap, currentNode)
+					// Fix heap position
+					heap.Fix(nodesHeap, currentNode.heapIndex)
 				}
 			} else {
+				// New node
 				heuristic := computeHeuristic(from, goal, simulatedStates)
 				newNode := &node{
 					Action:     action,
@@ -138,13 +140,11 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					heuristic:  heuristic,
 					depth:      parentNode.depth + 1,
 					heapIndex:  -1,
+					closed:     false,
 				}
-				openNodes[simulatedStates.hash] = newNode
-				heap.Push(openNodesHeap, newNode)
+				heap.Push(nodesHeap, newNode)
 			}
 		}
-
-		closedNodes[parentNode.world.hash] = parentNode
 	}
 
 	return Plan{}
@@ -162,6 +162,15 @@ func getImpactingActions(from world, actions Actions) Actions {
 	}
 
 	return availableActions
+}
+
+func fetchNodeInHeap(heap *nodeHeap, w world, closed bool) (*node, bool) {
+	for _, n := range *heap {
+		if n.closed == closed && n.world.Check(w) {
+			return n, true
+		}
+	}
+	return nil, false
 }
 
 func buildPlanFromNode(node *node) Plan {
