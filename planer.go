@@ -58,14 +58,3 @@ func (agent *Agent) getPrioritizedGoalName() (GoalName, error) {
 		return prioritizedGoalName, fmt.Errorf("no goal available")
 	}
 }
-
-// GetNextAction returns the first Action required to achieve the Plan.
-//
-// An error is returned if no action is available, meaning the Plan is empty.
-func (plan Plan) GetNextAction() (Action, error) {
-	if len(plan) > 0 {
-		return *plan[0], nil
-	}
-
-	return Action{}, fmt.Errorf("no action available")
-}

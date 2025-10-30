@@ -294,50 +294,6 @@ func TestGetPrioritizedGoalName_UsingSensors(t *testing.T) {
 	}
 }
 
-// Test GetNextAction
-func TestGetNextAction_WithActions(t *testing.T) {
-	plan := Plan{
-		{name: "action1", cost: 1.0},
-		{name: "action2", cost: 2.0},
-	}
-
-	action, err := plan.GetNextAction()
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	if action.name != "action1" {
-		t.Errorf("Expected 'action1', got '%s'", action.name)
-	}
-}
-
-func TestGetNextAction_EmptyPlan(t *testing.T) {
-	plan := Plan{}
-
-	_, err := plan.GetNextAction()
-
-	if err == nil {
-		t.Error("Expected error for empty plan")
-	}
-}
-
-func TestGetNextAction_SingleAction(t *testing.T) {
-	plan := Plan{
-		{name: "only_action", cost: 1.0},
-	}
-
-	action, err := plan.GetNextAction()
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	if action.name != "only_action" {
-		t.Errorf("Expected 'only_action', got '%s'", action.name)
-	}
-}
-
 // Integration test with complex scenario
 func TestGetPlan_ComplexScenario(t *testing.T) {
 	actions := Actions{}
