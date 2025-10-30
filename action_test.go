@@ -2,92 +2,166 @@ package goapai
 
 import "testing"
 
-// Test Actions.AddAction
 func TestActions_AddAction(t *testing.T) {
-	actions := Actions{}
-
-	actions.AddAction("test", 1.5, false, Conditions{}, Effects{})
-
-	if len(actions) != 1 {
-		t.Errorf("Expected 1 action, got %d", len(actions))
+	tests := []struct {
+		name           string
+		actionsToAdd   []struct{ name string; cost float32; repeatable bool }
+		wantCount      int
+		checkFirst     bool
+		wantFirstName  string
+		wantFirstCost  float32
+		wantRepeatble  bool
+	}{
+		{
+			name: "single action",
+			actionsToAdd: []struct{ name string; cost float32; repeatable bool }{
+				{name: "test", cost: 1.5, repeatable: false},
+			},
+			wantCount:     1,
+			checkFirst:    true,
+			wantFirstName: "test",
+			wantFirstCost: 1.5,
+			wantRepeatble: false,
+		},
+		{
+			name: "multiple actions",
+			actionsToAdd: []struct{ name string; cost float32; repeatable bool }{
+				{name: "action1", cost: 1.0, repeatable: true},
+				{name: "action2", cost: 2.0, repeatable: false},
+			},
+			wantCount:  2,
+			checkFirst: false,
+		},
 	}
 
-	action := actions[0]
-	if action.name != "test" {
-		t.Errorf("Expected name 'test', got '%s'", action.name)
-	}
-	if action.cost != 1.5 {
-		t.Errorf("Expected cost 1.5, got %f", action.cost)
-	}
-	if action.repeatable {
-		t.Error("Expected repeatable to be false")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actions := Actions{}
+
+			for _, a := range tt.actionsToAdd {
+				actions.AddAction(a.name, a.cost, a.repeatable, Conditions{}, Effects{})
+			}
+
+			if len(actions) != tt.wantCount {
+				t.Errorf("Expected %d actions, got %d", tt.wantCount, len(actions))
+			}
+
+			if tt.checkFirst {
+				action := actions[0]
+				if action.name != tt.wantFirstName {
+					t.Errorf("Expected name '%s', got '%s'", tt.wantFirstName, action.name)
+				}
+				if action.cost != tt.wantFirstCost {
+					t.Errorf("Expected cost %f, got %f", tt.wantFirstCost, action.cost)
+				}
+				if action.repeatable != tt.wantRepeatble {
+					t.Errorf("Expected repeatable to be %v", tt.wantRepeatble)
+				}
+			}
+		})
 	}
 }
 
-func TestActions_AddAction_Multiple(t *testing.T) {
-	actions := Actions{}
-
-	actions.AddAction("action1", 1.0, true, Conditions{}, Effects{})
-	actions.AddAction("action2", 2.0, false, Conditions{}, Effects{})
-
-	if len(actions) != 2 {
-		t.Errorf("Expected 2 actions, got %d", len(actions))
-	}
-}
-
-// Test Action.GetName
 func TestAction_GetName(t *testing.T) {
-	actions := Actions{}
-	actions.AddAction("my_action", 1.0, false, Conditions{}, Effects{})
+	tests := []struct {
+		name       string
+		actionName string
+		want       string
+	}{
+		{
+			name:       "basic name",
+			actionName: "my_action",
+			want:       "my_action",
+		},
+	}
 
-	name := actions[0].GetName()
-	if name != "my_action" {
-		t.Errorf("Expected 'my_action', got '%s'", name)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actions := Actions{}
+			actions.AddAction(tt.actionName, 1.0, false, Conditions{}, Effects{})
+
+			got := actions[0].GetName()
+			if got != tt.want {
+				t.Errorf("Expected '%s', got '%s'", tt.want, got)
+			}
+		})
 	}
 }
 
-// Test Action.GetEffects
 func TestAction_GetEffects(t *testing.T) {
-	effects := Effects{
-		Effect[int]{Key: 1, Value: 10, Operator: SET},
+	tests := []struct {
+		name        string
+		effects     Effects
+		wantCount   int
+	}{
+		{
+			name: "single effect",
+			effects: Effects{
+				Effect[int]{Key: 1, Value: 10, Operator: SET},
+			},
+			wantCount: 1,
+		},
 	}
 
-	actions := Actions{}
-	actions.AddAction("test", 1.0, false, Conditions{}, effects)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actions := Actions{}
+			actions.AddAction("test", 1.0, false, Conditions{}, tt.effects)
 
-	retrieved := actions[0].GetEffects()
-	if len(retrieved) != 1 {
-		t.Errorf("Expected 1 effect, got %d", len(retrieved))
-	}
-}
-
-// Test Effect[T Numeric] operations
-func TestEffect_Check_Match(t *testing.T) {
-	agent := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent, 1, 100)
-
-	effect := Effect[int]{Key: 1, Value: 100, Operator: SET}
-	if !effect.check(agent.w) {
-		t.Error("Expected effect to match state")
-	}
-}
-
-func TestEffect_Check_NoMatch(t *testing.T) {
-	agent := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent, 1, 100)
-
-	effect := Effect[int]{Key: 1, Value: 200, Operator: SET}
-	if effect.check(agent.w) {
-		t.Error("Expected effect not to match state")
+			retrieved := actions[0].GetEffects()
+			if len(retrieved) != tt.wantCount {
+				t.Errorf("Expected %d effect(s), got %d", tt.wantCount, len(retrieved))
+			}
+		})
 	}
 }
 
-func TestEffect_Check_NonSetOperator(t *testing.T) {
-	agent := CreateAgent(Goals{}, Actions{})
-	SetState[int](&agent, 1, 100)
+func TestEffect_Check(t *testing.T) {
+	tests := []struct {
+		name       string
+		stateValue int
+		effectKey  StateKey
+		effectVal  int
+		operator   arithmetic
+		want       bool
+	}{
+		{
+			name:       "match with SET operator",
+			stateValue: 100,
+			effectKey:  1,
+			effectVal:  100,
+			operator:   SET,
+			want:       true,
+		},
+		{
+			name:       "no match with SET operator",
+			stateValue: 100,
+			effectKey:  1,
+			effectVal:  200,
+			operator:   SET,
+			want:       false,
+		},
+		{
+			name:       "non-SET operator always false",
+			stateValue: 100,
+			effectKey:  1,
+			effectVal:  100,
+			operator:   ADD,
+			want:       false,
+		},
+	}
 
-	effect := Effect[int]{Key: 1, Value: 100, Operator: ADD}
-	if effect.check(agent.w) {
-		t.Error("Expected non-SET operator to always return false")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := CreateAgent(Goals{}, Actions{})
+			SetState[int](&agent, tt.effectKey, tt.stateValue)
+
+			effect := Effect[int]{Key: tt.effectKey, Value: tt.effectVal, Operator: tt.operator}
+			got := effect.check(agent.w)
+
+			if got != tt.want {
+				t.Errorf("Expected %v, got %v", tt.want, got)
+			}
+		})
 	}
 }

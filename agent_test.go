@@ -3,36 +3,55 @@ package goapai
 import "testing"
 
 func TestCreateAgent(t *testing.T) {
-	goals := Goals{
-		"test_goal": {
-			Conditions: Conditions{
-				&ConditionBool{Key: 1, Value: true},
+	tests := []struct {
+		name          string
+		goals         Goals
+		actions       Actions
+		wantActionCnt int
+		wantGoalCnt   int
+	}{
+		{
+			name: "agent with goal and action",
+			goals: Goals{
+				"test_goal": {
+					Conditions: Conditions{
+						&ConditionBool{Key: 1, Value: true},
+					},
+					PriorityFn: func(sensors Sensors) float32 {
+						return 1.0
+					},
+				},
 			},
-			PriorityFn: func(sensors Sensors) float32 {
-				return 1.0
-			},
+			actions: func() Actions {
+				actions := Actions{}
+				actions.AddAction("test_action", 1.0, false, Conditions{}, Effects{})
+				return actions
+			}(),
+			wantActionCnt: 1,
+			wantGoalCnt:   1,
 		},
 	}
 
-	actions := Actions{}
-	actions.AddAction("test_action", 1.0, false, Conditions{}, Effects{})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := CreateAgent(tt.goals, tt.actions)
 
-	agent := CreateAgent(goals, actions)
+			if len(agent.actions) != tt.wantActionCnt {
+				t.Errorf("Expected %d action(s), got %d", tt.wantActionCnt, len(agent.actions))
+			}
 
-	if len(agent.actions) != 1 {
-		t.Errorf("Expected 1 action, got %d", len(agent.actions))
-	}
+			if len(agent.goals) != tt.wantGoalCnt {
+				t.Errorf("Expected %d goal(s), got %d", tt.wantGoalCnt, len(agent.goals))
+			}
 
-	if len(agent.goals) != 1 {
-		t.Errorf("Expected 1 goal, got %d", len(agent.goals))
-	}
+			if agent.sensors == nil {
+				t.Error("Expected sensors to be initialized")
+			}
 
-	if agent.sensors == nil {
-		t.Error("Expected sensors to be initialized")
-	}
-
-	if agent.w.Agent == nil {
-		t.Error("Expected world.Agent to be non-nil")
+			if agent.w.Agent == nil {
+				t.Error("Expected world.Agent to be non-nil")
+			}
+		})
 	}
 }
 

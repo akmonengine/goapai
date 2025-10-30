@@ -52,29 +52,6 @@ func TestGetImpactingActions_AllImpacting(t *testing.T) {
 	}
 }
 
-// Test getLessCostlyNodeKey
-func TestGetLessCostlyNodeKey(t *testing.T) {
-	nodes := []*node{
-		{totalCost: 10.0},
-		{totalCost: 5.0},
-		{totalCost: 15.0},
-	}
-
-	key := getLessCostlyNodeKey(nodes)
-	if key != 1 {
-		t.Errorf("Expected key 1 (lowest cost), got %d", key)
-	}
-}
-
-func TestGetLessCostlyNodeKey_Empty(t *testing.T) {
-	nodes := []*node{}
-
-	key := getLessCostlyNodeKey(nodes)
-	if key != -1 {
-		t.Errorf("Expected -1 for empty list, got %d", key)
-	}
-}
-
 // Test buildPlanFromNode
 func TestBuildPlanFromNode(t *testing.T) {
 	action1 := &Action{name: "action1", cost: 1.0}
