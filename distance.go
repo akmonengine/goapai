@@ -1,7 +1,16 @@
 package goapai
 
-// Distance calculates the distance between the current state value and a condition target value
-// Returns 0 if the condition is already satisfied, otherwise returns the numeric distance
+// Distance calculates the heuristic distance between the current state value and a condition's target value.
+//
+// It returns 0 if the condition is already satisfied, otherwise returns the numeric distance
+// needed to satisfy the condition. This method is used by the A* algorithm to compute heuristics
+// for pathfinding.
+//
+// For numeric types (int, int8, uint8, uint64, float64), the distance is calculated based on
+// the operator type (EQUAL, UPPER, LOWER, etc.). For bool and string types, the distance is
+// either 0 (satisfied) or 1 (not satisfied).
+//
+// If the condition's key doesn't match the state's key, or if types don't match, returns 0.
 func (state State[T]) Distance(condition ConditionInterface) float32 {
 	// Check if the condition key matches
 	if state.Key != condition.GetKey() {

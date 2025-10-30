@@ -15,12 +15,16 @@ const (
 	UPPER
 )
 
+// Numeric is a constraint that defines the numeric types supported by generic State and Condition.
+// Supported types are: int8, int, uint8, uint64, and float64.
 type Numeric interface {
 	~int8 | ~int |
 		~uint8 | ~uint64 |
 		~float64
 }
 
+// StateInterface defines the interface that all state types must implement.
+// States represent key-value pairs in the world state, with support for hashing and distance calculation.
 type StateInterface interface {
 	Check(w world, key StateKey) bool
 	GetKey() StateKey
@@ -30,12 +34,19 @@ type StateInterface interface {
 	Hash() uint64
 	Distance(condition ConditionInterface) float32
 }
+
+// State represents a single key-value pair in the world state.
+//
+// States can hold numeric types (constrained by Numeric), bool, or string values.
+// Each state is identified by a unique StateKey and includes a cached hash for performance.
 type State[T Numeric | bool | string] struct {
-	Key   StateKey
-	Value T
-	hash  uint64
+	Key   StateKey // Unique identifier for this state
+	Value T        // The state's value
+	hash  uint64   // Cached hash value for fast comparison
 }
 
+// StateKey is a compact 16-bit unsigned integer used to identify states.
+// Using uint16 instead of strings reduces memory usage and improves performance.
 type StateKey uint16
 
 type states []StateInterface
@@ -146,23 +157,46 @@ func (statesData states) GetIndex(stateKey StateKey) int {
 	return -1
 }
 
+// Sensor is an alias for any type, used to store external data accessed by goal priority
+// functions and procedural conditions.
 type Sensor any
+
+// Sensors is a map of sensor names to their values, providing external data to the agent
+// without duplicating it in the world state during planning.
 type Sensors map[string]Sensor
 
+// GetSensor retrieves a sensor value by name.
+// Returns nil if the sensor doesn't exist.
 func (sensors Sensors) GetSensor(name string) Sensor {
 	return sensors[name]
 }
 
+// ConditionInterface defines the interface that all condition types must implement.
+// Conditions are preconditions that must be satisfied for actions or goals.
 type ConditionInterface interface {
 	GetKey() StateKey
 	Check(w world) bool
 }
 
+// ConditionFn represents a procedural condition that evaluates against sensor data.
+//
+// Unlike state-based conditions, ConditionFn uses a custom function to check sensors.
+// The result is cached after the first evaluation to avoid redundant computation during planning.
+//
+// Example:
+//
+//	condition := &ConditionFn{
+//	    Key: 100,
+//	    CheckFn: func(sensors Sensors) bool {
+//	        health := sensors["health"].(int)
+//	        return health < 50
+//	    },
+//	}
 type ConditionFn struct {
-	Key      StateKey
-	CheckFn  func(sensors Sensors) bool
-	resolved bool
-	valid    bool
+	Key      StateKey                 // Unique identifier for this condition
+	CheckFn  func(sensors Sensors) bool // Function that evaluates the condition
+	resolved bool                       // Whether the condition has been evaluated
+	valid    bool                       // Cached result of the evaluation
 }
 
 func (conditionFn *ConditionFn) GetKey() StateKey {
@@ -178,10 +212,23 @@ func (conditionFn *ConditionFn) Check(w world) bool {
 	return conditionFn.valid
 }
 
+// Condition represents a numeric state-based condition with comparison operators.
+//
+// Conditions check if a state value satisfies a comparison (EQUAL, UPPER, LOWER, etc.)
+// against a target value. Supported types are constrained by the Numeric interface.
+//
+// Example:
+//
+//	// Check if state key 1 is greater than or equal to 100
+//	condition := &Condition[int]{
+//	    Key:      1,
+//	    Value:    100,
+//	    Operator: UPPER_OR_EQUAL,
+//	}
 type Condition[T Numeric] struct {
-	Key      StateKey
-	Value    T
-	Operator operator
+	Key      StateKey // State key to check
+	Value    T        // Target value to compare against
+	Operator operator // Comparison operator (EQUAL, UPPER, LOWER, etc.)
 }
 
 func (condition *Condition[T]) GetKey() StateKey {
@@ -226,10 +273,23 @@ func (condition *Condition[T]) Check(w world) bool {
 	return false
 }
 
+// ConditionBool represents a boolean state-based condition.
+//
+// Only EQUAL and NOT_EQUAL operators are supported for boolean conditions.
+// Other operators will cause Check to return false.
+//
+// Example:
+//
+//	// Check if state key 2 is true
+//	condition := &ConditionBool{
+//	    Key:      2,
+//	    Value:    true,
+//	    Operator: EQUAL,
+//	}
 type ConditionBool struct {
-	Key      StateKey
-	Value    bool
-	Operator operator
+	Key      StateKey // State key to check
+	Value    bool     // Target boolean value
+	Operator operator // Allowed: EQUAL, NOT_EQUAL
 }
 
 func (conditionBool *ConditionBool) GetKey() StateKey {
@@ -260,12 +320,26 @@ func (conditionBool *ConditionBool) Check(w world) bool {
 	return false
 }
 
+// ConditionString represents a string state-based condition.
+//
+// Only EQUAL and NOT_EQUAL operators are supported for string conditions.
+// Other operators will cause Check to return false.
+//
+// Example:
+//
+//	// Check if state key 3 equals "ready"
+//	condition := &ConditionString{
+//	    Key:      3,
+//	    Value:    "ready",
+//	    Operator: EQUAL,
+//	}
 type ConditionString struct {
-	Key      StateKey
-	Value    string
-	Operator operator
+	Key      StateKey // State key to check
+	Value    string   // Target string value
+	Operator operator // Allowed: EQUAL, NOT_EQUAL
 }
 
+// GetKey returns the state key that this condition checks.
 func (conditionString *ConditionString) GetKey() StateKey {
 	return conditionString.Key
 }
@@ -294,8 +368,11 @@ func (conditionString *ConditionString) Check(w world) bool {
 	return false
 }
 
+// Conditions is a collection of ConditionInterface implementations that must all be satisfied.
 type Conditions []ConditionInterface
 
+// Check returns true if all conditions in the collection are satisfied in the given world state.
+// Returns true for an empty condition list (vacuous truth).
 func (conditions Conditions) Check(w world) bool {
 	for _, condition := range conditions {
 		if !condition.Check(w) {

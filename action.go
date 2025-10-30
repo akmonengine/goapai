@@ -15,6 +15,11 @@ const (
 	DIVIDE
 )
 
+// Action represents a single action that an agent can perform to modify the world state.
+//
+// An action has preconditions (conditions) that must be met before it can be executed,
+// and postconditions (effects) that describe how it modifies the world state.
+// Actions have a cost that is used by the A* algorithm to find the optimal plan.
 type Action struct {
 	name       string
 	cost       float32
@@ -22,8 +27,18 @@ type Action struct {
 	conditions Conditions
 	effects    Effects
 }
+
+// Actions is a collection of Action pointers.
 type Actions []*Action
 
+// AddAction creates a new Action and appends it to the Actions collection.
+//
+// Parameters:
+//   - name: unique identifier for the action
+//   - cost: numeric cost used by pathfinding (lower costs are preferred)
+//   - repeatable: if false, the action can only be used once per plan
+//   - conditions: preconditions that must be satisfied before the action can be executed
+//   - effects: postconditions that describe how the action modifies the world state
 func (actions *Actions) AddAction(name string, cost float32, repeatable bool, conditions Conditions, effects Effects) {
 	action := Action{
 		name:       name,
@@ -36,26 +51,35 @@ func (actions *Actions) AddAction(name string, cost float32, repeatable bool, co
 	*actions = append(*actions, &action)
 }
 
+// GetName returns the action's name identifier.
 func (action *Action) GetName() string {
 	return action.name
 }
 
+// GetEffects returns the action's effects (postconditions).
 func (action *Action) GetEffects() Effects {
 	return action.effects
 }
 
+// EffectInterface defines the interface that all effect types must implement.
+// Effects describe how an action modifies the world state.
 type EffectInterface interface {
 	GetKey() StateKey
 	check(w world) bool
 	apply(w *world) error
 }
 
+// Effect represents a numeric state modification for types constrained by Numeric.
+//
+// It supports arithmetic operators (SET, ADD, SUBTRACT, MULTIPLY, DIVIDE) to modify
+// numeric state values. The effect is applied when an action is executed during planning.
 type Effect[T Numeric] struct {
-	Key      StateKey
-	Operator arithmetic
-	Value    T
+	Key      StateKey   // State key to modify
+	Operator arithmetic // Arithmetic operation to perform
+	Value    T          // Value to use in the operation
 }
 
+// GetKey returns the state key that this effect modifies.
 func (effect Effect[T]) GetKey() StateKey {
 	return effect.Key
 }
@@ -114,12 +138,17 @@ func (effect Effect[T]) apply(w *world) error {
 	return nil
 }
 
+// EffectBool represents a boolean state modification.
+//
+// Only the SET operator is allowed for boolean effects. Attempting to use other
+// operators (ADD, SUBTRACT, etc.) will result in an error when the effect is applied.
 type EffectBool struct {
-	Key      StateKey
-	Value    bool
-	Operator arithmetic
+	Key      StateKey   // State key to modify
+	Value    bool       // Boolean value to set
+	Operator arithmetic // Must be SET
 }
 
+// GetKey returns the state key that this effect modifies.
 func (effectBool EffectBool) GetKey() StateKey {
 	return effectBool.Key
 }
@@ -165,12 +194,17 @@ func (effectBool EffectBool) apply(w *world) error {
 	return nil
 }
 
+// EffectString represents a string state modification.
+//
+// Supports SET (replace string) and ADD (concatenate) operators. Other operators
+// (SUBTRACT, MULTIPLY, DIVIDE) are not allowed and will result in an error.
 type EffectString struct {
-	Key      StateKey
-	Value    string
-	Operator arithmetic
+	Key      StateKey   // State key to modify
+	Value    string     // String value to use
+	Operator arithmetic // Allowed: SET, ADD
 }
 
+// GetKey returns the state key that this effect modifies.
 func (effectString EffectString) GetKey() StateKey {
 	return effectString.Key
 }
@@ -216,8 +250,12 @@ func (effectString EffectString) apply(w *world) error {
 	return nil
 }
 
+// EffectFn is a function type for custom procedural effects that directly modify the agent.
+// This allows for effects that cannot be expressed through simple state modifications.
 type EffectFn func(agent *Agent)
 
+// Effects is a collection of EffectInterface implementations that describe how
+// an action modifies the world state.
 type Effects []EffectInterface
 
 // If all the effects already exist in world,
