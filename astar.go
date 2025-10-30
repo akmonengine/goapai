@@ -18,41 +18,8 @@ type node struct {
 	closed     bool // true = closed node, false = open node
 }
 
-// nodeHeap implements heap.Interface for a min-heap of nodes based on totalCost
-type nodeHeap []*node
-
-func (h nodeHeap) Len() int { return len(h) }
-
-func (h nodeHeap) Less(i, j int) bool {
-	return h[i].totalCost < h[j].totalCost
-}
-
-func (h nodeHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-	h[i].heapIndex = i
-	h[j].heapIndex = j
-}
-
-func (h *nodeHeap) Push(x interface{}) {
-	n := x.(*node)
-	n.heapIndex = len(*h)
-	*h = append(*h, n)
-}
-
-func (h *nodeHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	item := old[n-1]
-	old[n-1] = nil      // avoid memory leak
-	item.heapIndex = -1 // mark as removed
-	*h = old[0 : n-1]
-	return item
-}
-
 func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 	availableActions := getImpactingActions(from, actions)
-	nodesHeap := &nodeHeap{}
-	heap.Init(nodesHeap)
 
 	startNode := &node{
 		Action: &Action{},
@@ -65,20 +32,17 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 		heapIndex:  -1,
 		closed:     false,
 	}
-	heap.Push(nodesHeap, startNode)
+
+	nodesHeap := nodeHeap{}
+	heap.Init(&nodesHeap)
+	heap.Push(&nodesHeap, startNode)
 
 	for nodesHeap.Len() > 0 {
-		parentNode := heap.Pop(nodesHeap).(*node)
-
-		// Skip if already closed (lazy deletion)
-		if parentNode.closed {
-			continue
-		}
-
-		// Mark as closed
-		parentNode.closed = true
+		parentNode := heap.Pop(&nodesHeap).(*node)
 
 		if parentNode.depth > uint16(maxDepth) {
+			parentNode.closed = true
+			heap.Fix(&nodesHeap, parentNode.heapIndex)
 			continue
 		}
 
@@ -101,8 +65,9 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 				continue
 			}
 
+			currentNode, found := fetchNodeInHeap(nodesHeap, simulatedStates)
 			// Check if node exists in open nodes (closed=false)
-			if currentNode, found := fetchNodeInHeap(nodesHeap, simulatedStates, false); found {
+			if found && !currentNode.closed {
 				if (parentNode.cost + action.cost) < currentNode.cost {
 					currentNode.Action = action
 					currentNode.world = simulatedStates
@@ -112,9 +77,9 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					currentNode.depth = parentNode.depth + 1
 
 					// Fix heap position after cost update
-					heap.Fix(nodesHeap, currentNode.heapIndex)
+					heap.Fix(&nodesHeap, currentNode.heapIndex)
 				}
-			} else if currentNode, found := fetchNodeInHeap(nodesHeap, simulatedStates, true); found {
+			} else if found && currentNode.closed {
 				// Node was closed, reopen it with better cost
 				if (parentNode.cost + action.cost) < currentNode.cost {
 					currentNode.Action = action
@@ -126,7 +91,7 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					currentNode.closed = false // Reopen
 
 					// Fix heap position
-					heap.Fix(nodesHeap, currentNode.heapIndex)
+					heap.Fix(&nodesHeap, currentNode.heapIndex)
 				}
 			} else {
 				// New node
@@ -142,7 +107,7 @@ func astar(from world, goal goalInterface, actions Actions, maxDepth int) Plan {
 					heapIndex:  -1,
 					closed:     false,
 				}
-				heap.Push(nodesHeap, newNode)
+				heap.Push(&nodesHeap, newNode)
 			}
 		}
 	}
@@ -164,9 +129,9 @@ func getImpactingActions(from world, actions Actions) Actions {
 	return availableActions
 }
 
-func fetchNodeInHeap(heap *nodeHeap, w world, closed bool) (*node, bool) {
-	for _, n := range *heap {
-		if n.closed == closed && n.world.Check(w) {
+func fetchNodeInHeap(heap nodeHeap, w world) (*node, bool) {
+	for _, n := range heap {
+		if n.world.Check(w) {
 			return n, true
 		}
 	}
@@ -231,15 +196,31 @@ func countMissingGoal(goal goalInterface, w world) int {
 }
 
 /*
-A very simple (empiristic) model for h using:
-  - how much required world are met
-
-We try to be conservative and reduce the number of steps
+Improved heuristic using numeric distance calculation:
+  - For each goal condition, calculate the numeric distance between current value and target
+  - Sum all distances to get total heuristic
+  - This provides much better guidance than simple binary satisfied/unsatisfied check
 */
 func computeHeuristic(from world, goal goalInterface, w world) float32 {
-	missingGoalsCount := float32(countMissingGoal(goal, w))
+	var totalDistance float32
 
-	h := missingGoalsCount
+	for _, condition := range goal.Conditions {
+		key := condition.GetKey()
+		stateIndex := w.states.GetIndex(key)
 
-	return h
+		if stateIndex >= 0 {
+			// State exists, calculate actual distance
+			state := w.states[stateIndex]
+			distance := state.Distance(condition)
+			totalDistance += distance
+		} else {
+			// State doesn't exist, use pessimistic estimate
+			// If the condition is not satisfied and state doesn't exist, assume distance of 1
+			if !condition.Check(w) {
+				totalDistance += 1.0
+			}
+		}
+	}
+
+	return totalDistance
 }
