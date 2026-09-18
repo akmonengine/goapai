@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/kelindar/goap v0.0.0-20231112144204-e9595370b8d7
-	github.com/akmonengine/goapai v0.0.0
+	github.com/akmonengine/goapai v1.1.0
 )
 
 require (
