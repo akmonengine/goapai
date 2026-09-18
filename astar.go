@@ -174,7 +174,7 @@ func allowedRepetition(action *Action, parentNode *node) bool {
 
 	node := parentNode
 	for node != nil {
-		if node.Action.name == action.name {
+		if node.name == action.name {
 			return false
 		}
 

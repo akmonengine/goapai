@@ -1,7 +1,7 @@
 package benchmark
 
 import (
-	"goapai"
+	"github.com/akmonengine/goapai"
 	"testing"
 )
 
