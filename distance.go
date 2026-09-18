@@ -41,12 +41,13 @@ func (state State[T]) Distance(condition ConditionInterface) float32 {
 		}
 	case *ConditionBool:
 		if v, ok := any(state.Value).(bool); ok {
-			if cond.Operator == EQUAL {
+			switch cond.Operator {
+			case EQUAL:
 				if v == cond.Value {
 					return 0
 				}
 				return 1
-			} else if cond.Operator == NOT_EQUAL {
+			case NOT_EQUAL:
 				if v != cond.Value {
 					return 0
 				}
@@ -55,12 +56,13 @@ func (state State[T]) Distance(condition ConditionInterface) float32 {
 		}
 	case *ConditionString:
 		if v, ok := any(state.Value).(string); ok {
-			if cond.Operator == EQUAL {
+			switch cond.Operator {
+			case EQUAL:
 				if v == cond.Value {
 					return 0
 				}
 				return 1
-			} else if cond.Operator == NOT_EQUAL {
+			case NOT_EQUAL:
 				if v != cond.Value {
 					return 0
 				}
